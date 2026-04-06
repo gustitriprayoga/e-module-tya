@@ -128,7 +128,7 @@ class Login extends Component
         }
 
         if ($user->hasAnyRole(['mahasiswa', 'dosen'])) {
-            return redirect()->intended('/dashboard/student');
+            return redirect()->intended('/dashboard');
         }
 
         return redirect()->intended('/');
