@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('modules', function (Blueprint $table) {
+        Schema::create('fakultas', function (Blueprint $table) {
             $table->id();
+            $table->string('kode_fakultas')->nullable()->unique(); // Menyimpan id_sms dari API
+            $table->string('nama_fakultas'); // Menyimpan nm_lemb dari API
             $table->timestamps();
         });
     }
@@ -22,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('modules');
+        Schema::dropIfExists('fakultas');
     }
 };

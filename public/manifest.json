@@ -1,0 +1,16 @@
+{
+    "name": "E-Module English Course",
+    "short_name": "E-Module",
+    "background_color": "#6777ef",
+    "display": "fullscreen",
+    "description": "E-Module English Course Website.",
+    "theme_color": "#6777ef",
+    "start_url": "/",
+    "icons": [
+        {
+            "src": "logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
