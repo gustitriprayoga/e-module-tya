@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('vocabularies', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('module_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('module_id')->nullable();
             $table->string('word');
             $table->text('definition');
             $table->text('context_sentence')->nullable();
