@@ -51,8 +51,8 @@
                 Instrument Bank
             </a>
 
-            <a href="#"
-                class="flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-600 hover:bg-brand-50 hover:text-brand-600 font-medium transition-all duration-300">
+            <a href="{{ route('admin.vocabulary') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-2xl {{ request()->routeIs('admin.vocabulary') ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/40 font-bold' : 'text-slate-600 hover:bg-brand-50 hover:text-brand-600 font-medium' }} transition-all duration-300">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">

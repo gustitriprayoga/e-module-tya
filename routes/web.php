@@ -41,6 +41,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard/admin/modules', \App\Livewire\Admin\ModuleManager::class)->name('admin.modules');
         Route::get('/dashboard/admin/modules/{module_id}/sessions', \App\Livewire\Admin\SessionManager::class)->name('admin.sessions');
         Route::get('/dashboard/admin/sessions/{session_id}/builder', \App\Livewire\Admin\ContentBuilder::class)->name('admin.content-builder');
+        Route::get('/dashboard/admin/vocabulary', \App\Livewire\Admin\VocabularyManager::class)->name('admin.vocabulary');
     });
 
     // 2. Dashboard Peserta (Mahasiswa & Dosen dari SSO)

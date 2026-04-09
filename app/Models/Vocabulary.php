@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class Vocabulary extends Model
 {
     protected $fillable = [
-        'module_id', 
-        'word', 
-        'definition', 
+        'module_id',
+        'word',
+        'category',
+        'definition',
         'context_sentence'
     ];
 
