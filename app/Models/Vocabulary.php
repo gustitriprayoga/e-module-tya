@@ -8,6 +8,7 @@ class Vocabulary extends Model
 {
     protected $fillable = [
         'module_id',
+        'level',
         'word',
         'category',
         'definition',
