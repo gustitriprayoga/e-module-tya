@@ -37,7 +37,9 @@ class GenerateVocabulary extends Command
             }
 
             // Panggil API Kamus
-            $response = Http::get("https://api.dictionaryapi.dev/api/v2/entries/en/{$word}");
+            $response = Http::withOptions([
+                'verify' => false, // Mengabaikan verifikasi sertifikat SSL
+            ])->get("https://api.dictionaryapi.dev/api/v2/entries/en/{$word}");
 
             $definition = 'Definition not found.';
             $contextSentence = null;
