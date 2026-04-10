@@ -2,21 +2,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class TestResult extends Model
 {
-    protected $fillable = ['user_id', 'test_type', 'indicator_scores', 'total_score'];
+    use HasFactory;
 
-    protected function casts(): array
-    {
-        return [
-            'indicator_scores' => 'array',
-        ];
-    }
+    protected $fillable = [
+        'user_id',
+        'test_id',
+        'score',
+        'completed_at',
+    ];
 
+    // Relasi agar kita tahu nilai ini milik siapa
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    // Relasi agar kita tahu ini nilai dari ujian apa
+    public function test()
+    {
+        return $this->belongsTo(Test::class);
     }
 }

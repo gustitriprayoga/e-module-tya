@@ -13,10 +13,17 @@ return new class extends Migration
     {
         Schema::create('test_results', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->enum('test_type', ['pre_test', 'post_test']);
-            $table->json('indicator_scores'); // Menyimpan array: {"Main Idea": 80, "Inference": 40, ...}
-            $table->float('total_score');
+            // Menghubungkan hasil ke user (mahasiswa)
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
+            // Menghubungkan hasil ke test tertentu (Pre-test / Post-test)
+            $table->foreignId('test_id')->constrained()->onDelete('cascade');
+
+            // Menyimpan nilai
+            $table->decimal('score', 5, 2);
+
+            // Waktu penyelesaian
+            $table->timestamp('completed_at')->nullable();
             $table->timestamps();
         });
     }

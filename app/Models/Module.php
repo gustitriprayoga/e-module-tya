@@ -3,15 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\Session;
 
 class Module extends Model
 {
     protected $fillable = [
-        'title', 
-        'slug', 
-        'description', 
-        'cover_image', 
-        'is_active'
+        'title',
+        'slug',
+        'description',
+        'cover_image',
+        'is_active',
+        'is_published', // Tambahkan ini
+        'order',        // Tambahkan ini
     ];
 
     public function pages()
@@ -22,5 +25,10 @@ class Module extends Model
     public function vocabularies()
     {
         return $this->hasMany(Vocabulary::class);
+    }
+
+    public function courseSessions()
+    {
+        return $this->hasMany(CourseSession::class);
     }
 }

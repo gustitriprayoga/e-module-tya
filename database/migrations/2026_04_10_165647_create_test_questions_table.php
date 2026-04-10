@@ -12,18 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('test_questions', function (Blueprint $table) {
-           $table->id();
-            $table->enum('type', ['pre_test', 'post_test']);
-            $table->enum('indicator', [
-                'Main Idea', 
-                'Specific Information', 
-                'Inference', 
-                'Vocabulary in Context', 
-                'Reference Identification'
-            ]);
-            $table->text('question_text');
-            $table->json('options');
-            $table->string('correct_answer', 1);
+            $table->id();
+            $table->foreignId('test_id')->constrained()->onDelete('cascade');
+            $table->foreignId('question_id')->constrained()->onDelete('cascade');
+            $table->integer('sort_order')->default(0);
             $table->timestamps();
         });
     }
