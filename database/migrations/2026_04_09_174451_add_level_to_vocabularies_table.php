@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vocabularies', function (Blueprint $table) {
-            $table->string('level', 10)->nullable()->after('word');
+            // $table->string('level', 10)->nullable()->after('word');
+            $table->string('level')->nullable();
         });
     }
 

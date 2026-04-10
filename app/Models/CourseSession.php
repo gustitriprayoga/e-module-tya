@@ -18,6 +18,11 @@ class CourseSession extends Model
         'order',
     ];
 
+    // TAMBAHKAN BLOK INI: Agar database paham ini adalah Boolean (True/False)
+    protected $casts = [
+        'is_published' => 'boolean',
+    ];
+
     public function module()
     {
         return $this->belongsTo(Module::class);

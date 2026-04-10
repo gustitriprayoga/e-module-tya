@@ -3,55 +3,84 @@
 namespace App\Livewire\Student;
 
 use App\Models\Module;
-use App\Models\CourseSession; // Menggunakan model yang benar
+use App\Models\Page;
+use App\Models\Block;
 use App\Models\Vocabulary;
 use Livewire\Component;
 
 class ModuleReader extends Component
 {
     public $module;
-    public $currentSession;
+    public $pages;
+    public $currentPage;
+    public $currentPageIndex = 0;
+    public $totalPages = 0;
+
     public $contentBlocks = [];
     public $vocabularies = [];
 
-    public function mount($module_slug, $session_id = null)
+    public function mount($module_slug)
     {
-        // 1. Load Modul beserta seluruh sesinya (diurutkan berdasarkan 'order')
-        $this->module = Module::where('slug', $module_slug)->with(['courseSessions' => function ($q) {
-            $q->where('is_published', true)->orderBy('order');
-        }])->firstOrFail();
+        // 1. Load Modul
+        $this->module = Module::where('slug', $module_slug)->firstOrFail();
 
-        // 2. Tentukan sesi mana yang sedang dibuka
-        if ($session_id) {
-            $this->currentSession = CourseSession::where('module_id', $this->module->id)->findOrFail($session_id);
-        } else {
-            // Jika tidak ada ID di URL, buka sesi pertama secara otomatis
-            $this->currentSession = $this->module->courseSessions->first();
-        }
+        // 2. Load Semua Halaman (Pages) yang sudah di-publish, urutkan berdasarkan nomor halaman
+        $this->pages = Page::where('module_id', $this->module->id)
+            ->where('is_published', 1)
+            ->orderBy('order_number', 'asc')
+            ->get();
 
-        // 3. Ekstrak data JSON dari Content Builder (jika ada isinya)
-        if ($this->currentSession && $this->currentSession->content) {
-            $this->contentBlocks = json_decode($this->currentSession->content, true) ?? [];
-        }
-
-        // 4. Ambil semua Vocabulary dari database
-        // Diurutkan dari kata terpanjang agar kata pendek tidak menimpa kata yang lebih panjang (misal: "read" vs "reading")
+        $this->totalPages = $this->pages->count();
         $this->vocabularies = Vocabulary::orderByRaw('LENGTH(word) DESC')->get();
+
+        // 3. Langsung buka halaman pertama (index 0) jika ada
+        if ($this->totalPages > 0) {
+            $this->loadPage(0);
+        }
     }
 
-    /**
-     * Fungsi untuk mendeteksi dan menandai kosakata di dalam teks materi
-     */
+    // Fungsi untuk memuat data halaman beserta blok materinya
+    public function loadPage($index)
+    {
+        if ($index >= 0 && $index < $this->totalPages) {
+            $this->currentPageIndex = $index;
+            $this->currentPage = $this->pages[$index];
+
+            // Ambil materi dari Content Builder
+            $blocks = Block::where('page_id', $this->currentPage->id)
+                ->orderBy('sort_order', 'asc')
+                ->get();
+
+            $this->contentBlocks = $blocks->map(function ($block) {
+                return [
+                    'type' => in_array($block->type, ['pbl_intro', 'reading_text']) ? 'text' : $block->type,
+                    'content' => $block->content['text'] ?? ''
+                ];
+            })->toArray();
+        }
+    }
+
+    // Navigasi ala Buku
+    public function nextPage()
+    {
+        $this->loadPage($this->currentPageIndex + 1);
+        $this->dispatch('scrollToTop'); // Akan membuat layar otomatis scroll ke atas saat ganti halaman
+    }
+
+    public function prevPage()
+    {
+        $this->loadPage($this->currentPageIndex - 1);
+        $this->dispatch('scrollToTop');
+    }
+
     public function renderHighlightedText($text)
     {
         if (empty($text)) return '';
 
         foreach ($this->vocabularies as $vocab) {
-            // Gunakan Regex batas kata (\b) dan case-insensitive (i)
             $word = preg_quote($vocab->word, '/');
             $pattern = '/\b(' . $word . ')\b/i';
 
-            // HTML Tooltip Interaktif (Muncul saat di-hover mahasiswa)
             $replacement = '<span class="text-brand-600 font-extrabold border-b-2 border-brand-300 border-dashed cursor-help relative group transition-all hover:bg-brand-50 rounded px-0.5">
                 $1
                 <span class="absolute hidden group-hover:block bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-slate-900 text-white text-xs p-4 rounded-2xl shadow-2xl z-50 font-normal normal-case tracking-normal leading-relaxed text-left">
@@ -60,7 +89,6 @@ class ModuleReader extends Component
                     </div>
                     <div class="mb-2 italic text-sm font-serif">"' . $vocab->definition . '"</div>
                     ' . ($vocab->context_sentence ? '<div class="text-[10px] text-slate-400 border-t border-white/10 pt-2 mt-2">Example: ' . $vocab->context_sentence . '</div>' : '') . '
-
                     <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
                 </span>
             </span>';
@@ -75,7 +103,7 @@ class ModuleReader extends Component
     {
         return view('livewire.student.module-reader')
             ->layout('components.layouts.reader', [
-                'title' => $this->currentSession?->title ?? $this->module->title
+                'title' => $this->currentPage?->title ?? $this->module->title
             ]);
     }
 }

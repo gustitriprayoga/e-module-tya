@@ -79,7 +79,8 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:mahasiswa|dosen'])->group(function () {
         Route::get('/dashboard', StudentDashboard::class)->name('dashboard');
         Route::get('/test/{testId}', TestScreen::class)->name('student.test');
-        Route::get('/read/{module_slug}/{session_id?}', \App\Livewire\Student\ModuleReader::class)->name('student.reader');
+        // Route::get('/read/{module_slug}/{session_id?}', \App\Livewire\Student\ModuleReader::class)->name('student.reader');
+        Route::get('/read/{module_slug}', \App\Livewire\Student\ModuleReader::class)->name('student.reader');
 
         // Note: Nanti rute untuk Student Module Viewer (melihat materi) bisa ditambahkan di sini
     });
