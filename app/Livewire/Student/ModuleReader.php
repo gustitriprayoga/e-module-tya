@@ -17,10 +17,11 @@ class ModuleReader extends Component
     public $totalPages = 0;
 
     public $contentBlocks = [];
-    public $vocabularies = [];
-
-    // Properti untuk menyimpan jawaban kuis mahasiswa
     public $userAnswers = [];
+
+    // --- TRACKER GLOBAL SPEED READING ---
+    public $totalWords = 0;
+    public $totalSeconds = 0;
 
     public function mount($module_slug)
     {
@@ -31,11 +32,28 @@ class ModuleReader extends Component
             ->get();
 
         $this->totalPages = $this->pages->count();
-        $this->vocabularies = Vocabulary::orderByRaw('LENGTH(word) DESC')->get();
+
+        // 1. Hitung total KATA di seluruh modul ini di awal
+        $this->totalWords = $this->calculateTotalWords();
 
         if ($this->totalPages > 0) {
             $this->loadPage(0);
         }
+    }
+
+    private function calculateTotalWords()
+    {
+        $pageIds = $this->pages->pluck('id');
+        $blocks = Block::whereIn('page_id', $pageIds)
+            ->whereIn('type', ['pbl_intro', 'reading_text', 'text'])
+            ->get();
+
+        $words = 0;
+        foreach ($blocks as $b) {
+            $text = is_array($b->content) ? ($b->content['text'] ?? '') : $b->content;
+            $words += str_word_count(strip_tags($text));
+        }
+        return $words;
     }
 
     public function loadPage($index)
@@ -58,7 +76,6 @@ class ModuleReader extends Component
         }
     }
 
-    // Fungsi untuk mengecek jawaban kuis
     public function checkAnswer($blockId, $isCorrect)
     {
         if (!isset($this->userAnswers[$blockId])) {
@@ -66,71 +83,129 @@ class ModuleReader extends Component
         }
     }
 
-    public function nextPage()
+    // --- LOGIKA PENYIMPANAN WAKTU DARI ALPINE JS ---
+    public function syncTime($seconds)
     {
+        $this->totalSeconds += $seconds;
+    }
+
+    public function nextPage($pageSeconds = 0)
+    {
+        $this->syncTime($pageSeconds);
         $this->loadPage($this->currentPageIndex + 1);
         $this->dispatch('scrollToTop');
+
+        // Kirim event ke frontend untuk reset timer halaman
+        $this->dispatch('reset-timer', ['totalSeconds' => $this->totalSeconds]);
     }
 
-    public function prevPage()
+    public function prevPage($pageSeconds = 0)
     {
+        $this->syncTime($pageSeconds);
         $this->loadPage($this->currentPageIndex - 1);
         $this->dispatch('scrollToTop');
+
+        $this->dispatch('reset-timer', ['totalSeconds' => $this->totalSeconds]);
     }
 
-    public function renderHighlightedText($text)
+    public function finishModule($pageSeconds = 0)
     {
-        if (empty($text)) return '';
+        // Tambahkan detik dari halaman terakhir
+        $this->syncTime($pageSeconds);
 
-        foreach ($this->vocabularies as $vocab) {
-            $word = preg_quote($vocab->word, '/');
-            $pattern = '/\b(' . $word . ')\b/i';
+        // Kalkulasi Global WPM
+        $finalWpm = $this->totalSeconds > 0 ? round(($this->totalWords / $this->totalSeconds) * 60) : 0;
 
-            $level    = htmlspecialchars($vocab->level ?? 'Vocab', ENT_QUOTES);
-            $category = htmlspecialchars($vocab->category ?? 'General', ENT_QUOTES);
-            $def      = htmlspecialchars($vocab->definition, ENT_QUOTES);
-            $example  = htmlspecialchars($vocab->context_sentence ?? '', ENT_QUOTES);
 
-            $replacement = '<span
-            class="vocab-word text-brand-600 font-bold border-b-2 border-dashed border-brand-300 cursor-pointer rounded px-0.5 transition-colors hover:bg-brand-50 active:bg-brand-100"
-            role="button"
-            tabindex="0"
-            data-level="' . $level . '"
-            data-category="' . $category . '"
-            data-definition="' . $def . '"
-            data-example="' . $example . '"
-        >$1</span>';
+        $quizCorrect = count(array_filter($this->userAnswers, fn($status) => $status === 'correct'));
+        $quizTotal = \App\Models\Block::whereIn('page_id', $this->pages->pluck('id'))->where('type', 'quiz')->count();
 
-            $text = preg_replace($pattern, $replacement, $text);
-        }
+        // SIMPAN KE SESSION: Agar bisa diambil dan ditampilkan di Halaman Result Akhir
+        session()->put('module_' . $this->module->id . '_wpm', $finalWpm);
+        session()->put('module_' . $this->module->id . '_time', $this->totalSeconds);
+        session()->put('module_' . $this->module->id . '_words', $this->totalWords);
+        session()->put('module_' . $this->module->id . '_quiz_correct', $quizCorrect);
+        session()->put('module_' . $this->module->id . '_quiz_total', $quizTotal);
 
-        return $text;
-    }
-
-    public function finishModule()
-    {
-        // 1. Cari Post-Test KHUSUS UNTUK MODUL INI
         $postTest = \App\Models\Test::where('type', 'post-test')
-            ->where('module_id', $this->module->id) // KUNCI UTAMA PERUBAHAN
+            ->where('module_id', $this->module->id)
             ->where('is_active', true)
             ->first();
 
         if ($postTest) {
-            $alreadyTaken = \App\Models\TestResult::where('user_id', auth()->id())
-                ->where('test_id', $postTest->id)
-                ->exists();
-
+            $alreadyTaken = \App\Models\TestResult::where('user_id', auth()->id())->where('test_id', $postTest->id)->exists();
             if ($alreadyTaken) {
-                // Jika sudah, lihat rapor
                 return redirect()->route('student.test.result', $postTest->id);
             } else {
-                // Jika belum, kerjakan ujian
                 return redirect()->route('student.test', $postTest->id);
             }
         }
-
         session()->flash('message', 'Module completed! No Post-Test available yet.');
         return redirect()->route('modules.index');
+    }
+
+    // --- ALGORITMA VOCAB HIGHLIGHTER YANG SUPER CEPAT ---
+    public function renderHighlightedText($text)
+    {
+        if (empty($text)) return '';
+
+        $vocabData = \Illuminate\Support\Facades\Cache::remember('vocab_regex_data_v1', 3600, function () {
+            $vocabs = \App\Models\Vocabulary::select('word', 'definition', 'context_sentence', 'level', 'category')->get();
+            if ($vocabs->isEmpty()) return null;
+
+            $dict = [];
+            foreach ($vocabs as $v) {
+                $dict[strtolower($v->word)] = $v->toArray();
+            }
+
+            $keys = array_keys($dict);
+            usort($keys, function ($a, $b) {
+                return strlen($b) - strlen($a);
+            });
+            $escapedKeys = array_map(function ($key) {
+                return preg_quote($key, '/');
+            }, $keys);
+
+            $pattern = '/\b(' . implode('|', $escapedKeys) . ')\b/i';
+            return ['dict' => $dict, 'pattern' => $pattern];
+        });
+
+        if (!$vocabData) return $text;
+
+        $dict = $vocabData['dict'];
+        $pattern = $vocabData['pattern'];
+
+        $chunks = preg_split('/(<[^>]+>)/', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+        $result = '';
+
+        foreach ($chunks as $chunk) {
+            if (empty($chunk)) continue;
+            if (str_starts_with($chunk, '<') && str_ends_with($chunk, '>')) {
+                $result .= $chunk;
+                continue;
+            }
+
+            $processedChunk = preg_replace_callback($pattern, function ($matches) use ($dict) {
+                $matchedWord = $matches[1];
+                $lowerWord = strtolower($matchedWord);
+
+                if (isset($dict[$lowerWord])) {
+                    $v = $dict[$lowerWord];
+                    return '<span class="vocab-word" ' .
+                        'data-word="' . htmlspecialchars($v['word'], ENT_QUOTES) . '" ' .
+                        'data-definition="' . htmlspecialchars($v['definition'], ENT_QUOTES) . '" ' .
+                        'data-example="' . htmlspecialchars($v['context_sentence'] ?? '', ENT_QUOTES) . '" ' .
+                        'data-level="' . htmlspecialchars($v['level'] ?? 'Vocab', ENT_QUOTES) . '" ' .
+                        'data-category="' . htmlspecialchars($v['category'] ?? 'General', ENT_QUOTES) . '">' .
+                        $matchedWord . '</span>';
+                }
+                return $matchedWord;
+            }, $chunk);
+
+            $result .= $processedChunk;
+        }
+
+        return $result;
     }
 
     public function render()
