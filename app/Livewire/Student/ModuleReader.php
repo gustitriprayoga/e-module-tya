@@ -109,18 +109,30 @@ class ModuleReader extends Component
 
     public function finishModule()
     {
-        // 1. Cari Post-Test yang sedang aktif di database
+        // 1. Cari Post-Test yang sedang aktif
         $postTest = \App\Models\Test::where('type', 'post-test')
             ->where('is_active', true)
             ->first();
 
-        // 2. Jika Post-Test ada, arahkan mahasiswa langsung ke halaman ujian
         if ($postTest) {
-            return redirect()->route('student.test', ['test_id' => $postTest->id]);
+            // 2. Cek apakah mahasiswa ini sudah pernah mengerjakan Post-Test tersebut
+            $alreadyTaken = \App\Models\TestResult::where('user_id', auth()->id())
+                ->where('test_id', $postTest->id)
+                ->exists();
+
+            if ($alreadyTaken) {
+                // Jika SUDAH mengerjakan, langsung arahkan ke halaman Rapor (Test Result)
+                // PERBAIKAN: Kirim ID-nya secara langsung
+                return redirect()->route('student.test.result', $postTest->id);
+            } else {
+                // Jika BELUM mengerjakan, arahkan ke halaman Ujian (Test Screen)
+                // PERBAIKAN: Kirim ID-nya secara langsung
+                return redirect()->route('student.test', $postTest->id);
+            }
         }
 
-        // 3. Jika kebetulan Post-Test belum dibuat admin, arahkan kembali ke list modul
-        session()->flash('message', 'Module completed successfully!');
+        // 3. Fallback: Jika admin belum membuat soal Post-Test
+        session()->flash('message', 'Module completed! Waiting for instructor to publish the Post-Test.');
         return redirect()->route('modules.index');
     }
 

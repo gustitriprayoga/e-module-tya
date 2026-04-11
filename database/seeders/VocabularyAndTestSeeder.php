@@ -22,7 +22,6 @@ class VocabularyAndTestSeeder extends Seeder
         ];
 
         foreach ($vocabularies as $vocab) {
-            // Disesuaikan: module_id dihapus, ditambahkan level dan category standar
             Vocabulary::firstOrCreate(
                 ['word' => strtolower($vocab['word'])],
                 [
@@ -48,7 +47,7 @@ class VocabularyAndTestSeeder extends Seeder
         );
 
         // ==========================================
-        // 3. SEEDING BANK SOAL & MENGHUBUNGKANNYA KE TES
+        // 3. SEEDING BANK SOAL & MENGHUBUNGKANNYA KE PRE-TEST
         // ==========================================
         $questions = [
             [
@@ -84,14 +83,11 @@ class VocabularyAndTestSeeder extends Seeder
         ];
 
         foreach ($questions as $q) {
-            // A. Simpan teks pertanyaan ke tabel `questions`
             $question = Question::firstOrCreate(
                 ['question_text' => $q['question_text']],
                 ['indicator' => $q['indicator']]
             );
 
-            // B. Simpan opsi A-E ke tabel `question_options`
-            // Bersihkan opsi lama dulu untuk mencegah duplikasi jika seeder dijalankan ulang
             $question->options()->delete();
 
             foreach ($q['options'] as $key => $optionText) {
@@ -101,9 +97,30 @@ class VocabularyAndTestSeeder extends Seeder
                 ]);
             }
 
-            // C. Hubungkan soal ini ke Pre-test (Pivot Tabel)
             if (!$preTest->questions()->where('question_id', $question->id)->exists()) {
                 $preTest->questions()->attach($question->id);
+            }
+        }
+
+        // ==========================================
+        // 4. MEMBUAT POST-TEST DAN MEMASUKKAN SOALNYA
+        // ==========================================
+        $postTest = Test::firstOrCreate(
+            ['type' => 'post-test'],
+            [
+                'title' => 'Post-Test: Speed Reading Mastery',
+                'duration' => 60,
+                'passing_score' => 80,
+                'is_active' => true
+            ]
+        );
+
+        // Ambil semua pertanyaan yang baru dibuat, dan hubungkan juga ke post-test
+        $allQuestions = Question::all();
+        foreach ($allQuestions as $index => $q) {
+            if (!$postTest->questions()->where('question_id', $q->id)->exists()) {
+                // Tambahkan soal ke Post-Test
+                $postTest->questions()->attach($q->id);
             }
         }
     }

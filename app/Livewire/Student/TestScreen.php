@@ -12,18 +12,23 @@ class TestScreen extends Component
     public $test;
     public $questions;
     public $currentQuestionIndex = 0;
-    public $answers = []; // Menyimpan ID pilihan jawaban
-    public $timeLeft; // Dalam detik
+    public $answers = [];
+    public $timeLeft;
     public $isFinished = false;
 
     public function mount($testId)
     {
-        // Load test beserta soal dan pilihannya
         $this->test = Test::with(['questions.options'])->findOrFail($testId);
         $this->questions = $this->test->questions;
+
+        // PENGAMAN: Jika admin/seeder belum memasukkan soal ke dalam ujian ini
+        if ($this->questions->isEmpty()) {
+            toast('This test has no questions yet. Please contact the instructor.', 'error');
+            return redirect()->route('dashboard');
+        }
+
         $this->timeLeft = $this->test->duration * 60;
 
-        // Inisialisasi jawaban kosong
         foreach ($this->questions as $q) {
             $this->answers[$q->id] = null;
         }
@@ -55,19 +60,17 @@ class TestScreen extends Component
         $totalQuestions = count($this->questions);
         $correctAnswers = 0;
 
-        // Hitung Skor
         foreach ($this->questions as $question) {
-            $selectedOptionId = $this->answers[$question->id];
+            $selectedOptionId = $this->answers[$question->id] ?? null;
             $correctOption = $question->options->where('is_correct', true)->first();
 
-            if ($selectedOptionId == $correctOption->id) {
+            if ($correctOption && $selectedOptionId == $correctOption->id) {
                 $correctAnswers++;
             }
         }
 
-        $score = ($correctAnswers / $totalQuestions) * 100;
+        $score = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
 
-        // Simpan Hasil ke Database
         TestResult::create([
             'user_id' => Auth::id(),
             'test_id' => $this->test->id,
@@ -77,12 +80,15 @@ class TestScreen extends Component
 
         $this->isFinished = true;
 
-        return redirect()->route('student.test.result', ['test_id' => $this->test->id]);
+        toast('Test submitted successfully!', 'success');
+
+        // PENTING: Arahkan ke halaman analitik (Test Result)
+        return redirect()->route('student.test.result', $this->test->id);
     }
 
     public function render()
     {
         return view('livewire.student.test-screen')
-            ->layout('components.layouts.app'); // Gunakan layout standar tanpa sidebar admin
+            ->layout('components.layouts.app', ['title' => $this->test->title ?? 'Test']);
     }
 }

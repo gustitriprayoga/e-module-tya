@@ -18,19 +18,20 @@ class TestResult extends Component
 
     public $nGainScore = 0;
     public $nGainCategory = '';
+    public $gainActual = 0;
+    public $gainMax = 0;
+    public $isDecrease = false; // Tambahan properti baru
 
     public function mount($test_id)
     {
         $this->currentTest = Test::findOrFail($test_id);
 
-        // 1. Ambil Hasil Test Saat Ini (Biasanya Post-Test)
         $this->postTestResult = ResultModel::where('user_id', Auth::id())
             ->where('test_id', $this->currentTest->id)
             ->firstOrFail();
 
         $this->postTestScore = $this->postTestResult->score;
 
-        // 2. Ambil Hasil Pre-Test (Sebagai Pembanding)
         $this->preTestResult = ResultModel::where('user_id', Auth::id())
             ->whereHas('test', function ($query) {
                 $query->where('type', 'pre-test');
@@ -42,24 +43,35 @@ class TestResult extends Component
         }
     }
 
-    // Fungsi Kalkulasi N-Gain Score untuk Penelitian Tesis
     private function calculateNGain()
     {
         $pre = $this->preTestScore;
         $post = $this->postTestScore;
 
-        if ($pre == 100 && $post == 100) {
-            $this->nGainScore = 0;
-            $this->nGainCategory = 'Maksimal';
-        } elseif ($pre >= $post) {
-            $this->nGainScore = 0;
-            $this->nGainCategory = 'Tidak Ada Peningkatan';
-        } else {
-            // Rumus N-Gain: (Post - Pre) / (100 - Pre)
-            $this->nGainScore = ($post - $pre) / (100 - $pre);
+        $this->gainActual = $post - $pre;
+        $this->gainMax = 100 - $pre;
 
-            // Kategorisasi N-Gain (Hake, 1999)
-            if ($this->nGainScore > 0.7) {
+        // KONDISI 1: Terjadi Penurunan Nilai (Post < Pre)
+        if ($post < $pre) {
+            $this->isDecrease = true;
+            $this->nGainScore = 0;
+            $this->nGainCategory = 'Penurunan (Decrease)';
+        }
+        // KONDISI 2: Sudah Sempurna Sejak Awal
+        elseif ($pre == 100 && $post == 100) {
+            $this->nGainScore = 0;
+            $this->nGainCategory = 'Maksimal (Perfect)';
+        }
+        // KONDISI 3: Nilai Tidak Berubah
+        elseif ($pre == $post) {
+            $this->nGainScore = 0;
+            $this->nGainCategory = 'Tetap (No Change)';
+        }
+        // KONDISI 4: Hitungan N-Gain Normal
+        else {
+            $this->nGainScore = $this->gainActual / $this->gainMax;
+
+            if ($this->nGainScore >= 0.7) {
                 $this->nGainCategory = 'Tinggi (High)';
             } elseif ($this->nGainScore >= 0.3) {
                 $this->nGainCategory = 'Sedang (Medium)';
