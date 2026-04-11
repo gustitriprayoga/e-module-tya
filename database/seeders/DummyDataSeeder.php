@@ -99,6 +99,20 @@ class DummyDataSeeder extends Seeder
         );
         $this->command->info('- Content Blocks berhasil dibuat.');
 
+        Block::create([
+            'page_id' => $page2->id,
+            'type' => 'quiz',
+            'sort_order' => 2,
+            'content' => [
+                'text' => 'Based on the passage, why is scanning important for students?',
+                'options' => [
+                    ['answer' => 'To translate the whole text.', 'is_correct' => false],
+                    ['answer' => 'To find specific information and save time.', 'is_correct' => true],
+                    ['answer' => 'To read as slowly as possible.', 'is_correct' => false],
+                ]
+            ]
+        ]);
+
 
         // ==========================================
         // 5. SEEDING PRE-TEST & PERTANYAAN

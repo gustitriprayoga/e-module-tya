@@ -19,12 +19,12 @@ class ModuleReader extends Component
     public $contentBlocks = [];
     public $vocabularies = [];
 
+    // Properti untuk menyimpan jawaban kuis mahasiswa
+    public $userAnswers = [];
+
     public function mount($module_slug)
     {
-        // 1. Load Modul
         $this->module = Module::where('slug', $module_slug)->firstOrFail();
-
-        // 2. Load Semua Halaman (Pages) yang sudah di-publish, urutkan berdasarkan nomor halaman
         $this->pages = Page::where('module_id', $this->module->id)
             ->where('is_published', 1)
             ->orderBy('order_number', 'asc')
@@ -33,38 +33,43 @@ class ModuleReader extends Component
         $this->totalPages = $this->pages->count();
         $this->vocabularies = Vocabulary::orderByRaw('LENGTH(word) DESC')->get();
 
-        // 3. Langsung buka halaman pertama (index 0) jika ada
         if ($this->totalPages > 0) {
             $this->loadPage(0);
         }
     }
 
-    // Fungsi untuk memuat data halaman beserta blok materinya
     public function loadPage($index)
     {
         if ($index >= 0 && $index < $this->totalPages) {
             $this->currentPageIndex = $index;
             $this->currentPage = $this->pages[$index];
 
-            // Ambil materi dari Content Builder
             $blocks = Block::where('page_id', $this->currentPage->id)
                 ->orderBy('sort_order', 'asc')
                 ->get();
 
             $this->contentBlocks = $blocks->map(function ($block) {
                 return [
-                    'type' => in_array($block->type, ['pbl_intro', 'reading_text']) ? 'text' : $block->type,
-                    'content' => $block->content['text'] ?? ''
+                    'id' => $block->id,
+                    'type' => $block->type,
+                    'content' => $block->content
                 ];
             })->toArray();
         }
     }
 
-    // Navigasi ala Buku
+    // Fungsi untuk mengecek jawaban kuis
+    public function checkAnswer($blockId, $isCorrect)
+    {
+        if (!isset($this->userAnswers[$blockId])) {
+            $this->userAnswers[$blockId] = $isCorrect ? 'correct' : 'wrong';
+        }
+    }
+
     public function nextPage()
     {
         $this->loadPage($this->currentPageIndex + 1);
-        $this->dispatch('scrollToTop'); // Akan membuat layar otomatis scroll ke atas saat ganti halaman
+        $this->dispatch('scrollToTop');
     }
 
     public function prevPage()
@@ -81,22 +86,42 @@ class ModuleReader extends Component
             $word = preg_quote($vocab->word, '/');
             $pattern = '/\b(' . $word . ')\b/i';
 
-            $replacement = '<span class="text-brand-600 font-extrabold border-b-2 border-brand-300 border-dashed cursor-help relative group transition-all hover:bg-brand-50 rounded px-0.5">
-                $1
-                <span class="absolute hidden group-hover:block bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-slate-900 text-white text-xs p-4 rounded-2xl shadow-2xl z-50 font-normal normal-case tracking-normal leading-relaxed text-left">
-                    <div class="flex justify-between items-center mb-2 border-b border-white/20 pb-2">
-                        <strong class="text-brand-400 uppercase text-[10px] tracking-widest">' . ($vocab->level ?? 'Vocab') . ' | ' . ($vocab->category ?? 'General') . '</strong>
-                    </div>
-                    <div class="mb-2 italic text-sm font-serif">"' . $vocab->definition . '"</div>
-                    ' . ($vocab->context_sentence ? '<div class="text-[10px] text-slate-400 border-t border-white/10 pt-2 mt-2">Example: ' . $vocab->context_sentence . '</div>' : '') . '
-                    <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
-                </span>
-            </span>';
+            $level    = htmlspecialchars($vocab->level ?? 'Vocab', ENT_QUOTES);
+            $category = htmlspecialchars($vocab->category ?? 'General', ENT_QUOTES);
+            $def      = htmlspecialchars($vocab->definition, ENT_QUOTES);
+            $example  = htmlspecialchars($vocab->context_sentence ?? '', ENT_QUOTES);
+
+            $replacement = '<span
+            class="vocab-word text-brand-600 font-bold border-b-2 border-dashed border-brand-300 cursor-pointer rounded px-0.5 transition-colors hover:bg-brand-50 active:bg-brand-100"
+            role="button"
+            tabindex="0"
+            data-level="' . $level . '"
+            data-category="' . $category . '"
+            data-definition="' . $def . '"
+            data-example="' . $example . '"
+        >$1</span>';
 
             $text = preg_replace($pattern, $replacement, $text);
         }
 
         return $text;
+    }
+
+    public function finishModule()
+    {
+        // 1. Cari Post-Test yang sedang aktif di database
+        $postTest = \App\Models\Test::where('type', 'post-test')
+            ->where('is_active', true)
+            ->first();
+
+        // 2. Jika Post-Test ada, arahkan mahasiswa langsung ke halaman ujian
+        if ($postTest) {
+            return redirect()->route('student.test', ['test_id' => $postTest->id]);
+        }
+
+        // 3. Jika kebetulan Post-Test belum dibuat admin, arahkan kembali ke list modul
+        session()->flash('message', 'Module completed successfully!');
+        return redirect()->route('modules.index');
     }
 
     public function render()

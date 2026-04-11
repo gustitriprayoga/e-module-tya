@@ -77,8 +77,7 @@ class TestScreen extends Component
 
         $this->isFinished = true;
 
-        toast('Test submitted successfully!', 'success');
-        return redirect()->route('dashboard');
+        return redirect()->route('student.test.result', ['test_id' => $this->test->id]);
     }
 
     public function render()

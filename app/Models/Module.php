@@ -31,4 +31,16 @@ class Module extends Model
     {
         return $this->hasMany(CourseSession::class);
     }
+
+    public function isLockedForUser($user)
+    {
+        // Logika: Modul terkunci jika user belum menyelesaikan Pre-test
+        // Anda bisa menyesuaikan ini, misalnya: Modul 2 terkunci jika Modul 1 belum selesai.
+        $hasCompletedPreTest = \App\Models\TestResult::where('user_id', $user->id)
+            ->whereHas('test', function ($q) {
+                $q->where('type', 'pre-test');
+            })->exists();
+
+        return !$hasCompletedPreTest;
+    }
 }

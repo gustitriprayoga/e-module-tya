@@ -37,12 +37,8 @@ class Dashboard extends Component
 
     public function render()
     {
-        // 3. Hanya muat daftar modul JIKA mahasiswa sudah lolos Gatekeeper
-        $modules = [];
-        if ($this->hasCompletedPreTest) {
-            // Asumsi Anda memiliki model Module, sesuaikan dengan nama kolom yang Anda gunakan
-            $modules = Module::where('is_published', true)->orderBy('order')->get();
-        }
+        // 3. Ambil SEMUA modul untuk ditampilkan (meskipun nanti statusnya terkunci di view)
+        $modules = Module::where('is_published', true)->orderBy('order')->get();
 
         return view('livewire.student.dashboard', [
             'modules' => $modules

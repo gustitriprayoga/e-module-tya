@@ -8,7 +8,7 @@
 
     @if (!$hasCompletedPreTest && $preTest)
         <div
-            class="bg-white/80 backdrop-blur-xl border border-white rounded-[32px] p-10 md:p-16 shadow-2xl shadow-brand-500/10 text-center max-w-3xl mx-auto relative overflow-hidden">
+            class="bg-white/80 backdrop-blur-xl border border-white rounded-[32px] p-10 md:p-16 shadow-2xl shadow-brand-500/10 text-center max-w-3xl mx-auto relative overflow-hidden mb-12">
             <div
                 class="absolute -top-24 -right-24 w-64 h-64 bg-brand-100 rounded-full blur-3xl opacity-50 pointer-events-none">
             </div>
@@ -26,10 +26,10 @@
                     </svg>
                 </div>
 
-                <h2 class="text-3xl font-black text-slate-900 mb-4">Course Material is Locked</h2>
+                <h2 class="text-3xl font-black text-slate-900 mb-4">Initial Assessment Required</h2>
                 <p class="text-lg text-slate-600 mb-8 max-w-lg mx-auto leading-relaxed">
-                    To personalize your learning experience and measure your progress, you must complete the <strong
-                        class="text-brand-600">{{ $preTest->title }}</strong> before accessing the modules.
+                    To personalize your learning experience and unlock the modules below, you must complete the <strong
+                        class="text-brand-600">{{ $preTest->title }}</strong>.
                 </p>
 
                 <div class="bg-slate-50 border border-slate-100 rounded-2xl p-6 max-w-md mx-auto mb-8 text-left">
@@ -56,13 +56,14 @@
     @else
         @if ($preTestScore !== null)
             <div
-                class="bg-gradient-to-r from-brand-600 to-accent-600 rounded-[32px] p-8 text-white shadow-xl shadow-brand-500/20 mb-10 flex flex-col md:flex-row justify-between items-center gap-6">
+                class="bg-gradient-to-r from-brand-600 to-accent-600 rounded-[32px] p-8 text-white shadow-xl shadow-brand-500/20 mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
                     <span
                         class="bg-white/20 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest backdrop-blur-sm border border-white/10 mb-3 inline-block">Initial
                         Assessment</span>
                     <h2 class="text-2xl font-bold">Pre-test Completed!</h2>
-                    <p class="text-brand-100 mt-1">Your baseline score has been recorded. Let's improve it together.</p>
+                    <p class="text-brand-100 mt-1">Your baseline score has been recorded. The modules are now unlocked.
+                    </p>
                 </div>
                 <div class="text-center bg-white/10 px-8 py-4 rounded-2xl backdrop-blur-md border border-white/20">
                     <div class="text-sm font-bold text-brand-100 uppercase tracking-widest mb-1">Your Score</div>
@@ -70,21 +71,42 @@
                 </div>
             </div>
         @endif
+    @endif
 
-        <div class="mb-6 flex justify-between items-end">
-            <h3 class="text-xl font-extrabold text-slate-900">Learning Modules</h3>
-            <span class="text-sm font-bold text-slate-500">{{ count($modules) }} Modules Available</span>
-        </div>
+    <div class="mb-6 flex justify-between items-end">
+        <h3 class="text-xl font-extrabold text-slate-900">Learning Path</h3>
+        <span class="text-sm font-bold text-slate-500">{{ count($modules) }} Modules Available</span>
+    </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            @forelse($modules as $index => $module)
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @forelse($modules as $index => $module)
+            @if (!$hasCompletedPreTest && $preTest)
+                <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-6 opacity-70 relative">
+                    <div class="absolute top-6 right-6 text-slate-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                            </path>
+                        </svg>
+                    </div>
+
+                    <div
+                        class="w-12 h-12 bg-slate-200 text-slate-400 rounded-xl flex items-center justify-center font-black text-xl mb-6">
+                        {{ $index + 1 }}
+                    </div>
+                    <h4 class="text-lg font-extrabold text-slate-400 mb-2">{{ $module->title }}</h4>
+                    <p class="text-slate-400 text-sm line-clamp-2 mb-6">This content is currently locked.</p>
+                </div>
+            @else
                 <a href="{{ route('student.reader', ['module_slug' => $module->slug]) }}"
-                    class="group bg-white/80 backdrop-blur-xl border border-white hover:border-brand-300 rounded-[32px] p-6 shadow-xl shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1">
+                    class="group bg-white border border-slate-100 hover:border-brand-300 rounded-[32px] p-6 shadow-xl shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1 block relative overflow-hidden">
+
                     <div
                         class="w-12 h-12 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center font-black text-xl mb-6 group-hover:bg-brand-600 group-hover:text-white transition-colors">
                         {{ $index + 1 }}
                     </div>
-                    <h4 class="text-lg font-extrabold text-slate-900 mb-2">{{ $module->title }}</h4>
+                    <h4 class="text-lg font-extrabold text-slate-900 mb-2 group-hover:text-brand-600 transition-colors">
+                        {{ $module->title }}</h4>
                     <p class="text-slate-500 text-sm line-clamp-2 mb-6">{{ $module->description }}</p>
 
                     <div class="flex items-center text-brand-600 font-bold text-sm">
@@ -96,12 +118,13 @@
                         </svg>
                     </div>
                 </a>
-            @empty
-                <div class="col-span-full bg-white rounded-3xl p-10 text-center border border-slate-100">
-                    <p class="text-slate-500 font-bold">No modules available yet. Please wait for the instructor to
-                        publish them.</p>
-                </div>
-            @endforelse
-        </div>
-    @endif
+            @endif
+
+        @empty
+            <div class="col-span-full bg-white rounded-3xl p-10 text-center border border-slate-100">
+                <p class="text-slate-500 font-bold">No modules available yet. Please wait for the instructor to publish
+                    them.</p>
+            </div>
+        @endforelse
+    </div>
 </div>
