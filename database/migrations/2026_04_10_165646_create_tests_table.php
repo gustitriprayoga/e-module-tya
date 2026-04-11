@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('tests', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('module_id')->nullable()->constrained('modules')->cascadeOnDelete();
             $table->string('title'); // Contoh: Pre-test Reading II
             $table->enum('type', ['pre-test', 'post-test']);
             $table->integer('duration')->default(60); // Durasi dalam menit

@@ -32,6 +32,10 @@ class Module extends Model
         return $this->hasMany(CourseSession::class);
     }
 
+    public function tests()
+    {
+        return $this->hasMany(Test::class);
+    }
     public function isLockedForUser($user)
     {
         // Logika: Modul terkunci jika user belum menyelesaikan Pre-test

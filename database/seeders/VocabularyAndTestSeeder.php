@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\Vocabulary;
 use App\Models\Question;
 use App\Models\Test;
+use App\Models\Module; // WAJIB DITAMBAHKAN UNTUK RELASI MODUL
 
 class VocabularyAndTestSeeder extends Seeder
 {
@@ -33,13 +34,29 @@ class VocabularyAndTestSeeder extends Seeder
             );
         }
 
+        // Ambil modul pertama dari database (yang sudah dibuat oleh ModuleAndPageSeeder)
+        $module = Module::first();
+
+        // Jika modul belum ada (sebagai pengaman), kita buatkan modul dummy
+        if (!$module) {
+            $module = Module::create([
+                'title' => 'Reading II: Speed Reading',
+                'slug' => 'reading-ii-speed-reading',
+                'is_published' => true,
+                'order' => 1
+            ]);
+        }
+
         // ==========================================
-        // 2. MEMBUAT PRE-TEST (Sebagai Wadah)
+        // 2. MEMBUAT PRE-TEST (Khusus untuk Modul Tersebut)
         // ==========================================
         $preTest = Test::firstOrCreate(
-            ['type' => 'pre-test'],
             [
-                'title' => 'Pre-Test: Speed Reading Module',
+                'type' => 'pre-test',
+                'module_id' => $module->id // PENAMBAHAN MODULE_ID DI SINI
+            ],
+            [
+                'title' => 'Pre-Test: ' . $module->title,
                 'duration' => 60,
                 'passing_score' => 70,
                 'is_active' => true
@@ -106,9 +123,12 @@ class VocabularyAndTestSeeder extends Seeder
         // 4. MEMBUAT POST-TEST DAN MEMASUKKAN SOALNYA
         // ==========================================
         $postTest = Test::firstOrCreate(
-            ['type' => 'post-test'],
             [
-                'title' => 'Post-Test: Speed Reading Mastery',
+                'type' => 'post-test',
+                'module_id' => $module->id // PENAMBAHAN MODULE_ID DI SINI
+            ],
+            [
+                'title' => 'Post-Test: ' . $module->title,
                 'duration' => 60,
                 'passing_score' => 80,
                 'is_active' => true

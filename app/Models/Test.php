@@ -8,6 +8,13 @@ class Test extends Model
 {
     protected $guarded = ['id'];
 
+
+
+    public function module()
+    {
+        return $this->belongsTo(Module::class);
+    }
+
     public function questions()
     {
         return $this->belongsToMany(Question::class, 'test_questions')
