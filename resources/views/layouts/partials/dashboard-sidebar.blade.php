@@ -8,15 +8,13 @@
         <a href="/" class="flex items-center gap-3 group">
             <div
                 class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-accent-600 flex items-center justify-center shadow-lg shadow-brand-500/30 text-white font-black text-xl group-hover:scale-110 transition-transform">
-                UP
-            </div>
+                UP</div>
             <span class="font-extrabold text-xl tracking-tight text-slate-900">Pahlawan<span
                     class="text-brand-600">Hub</span></span>
         </a>
     </div>
 
     <nav class="flex-1 px-4 py-6 space-y-6 overflow-y-auto hide-scrollbar">
-
         @if (request()->routeIs('dashboard.admin', 'admin.*'))
             <div>
                 <p class="px-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 mt-2">Researcher
@@ -48,15 +46,6 @@
                         </svg>
                         Test Manager
                     </a>
-                    <a href="{{ route('admin.questions') }}"
-                        class="flex items-center gap-3 px-4 py-3 rounded-2xl {{ request()->routeIs('admin.questions') ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/40 font-bold' : 'text-slate-600 hover:bg-brand-50 hover:text-brand-600 font-medium' }} transition-all duration-300">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
-                            </path>
-                        </svg>
-                        Instrument Bank
-                    </a>
                     <a href="{{ route('admin.vocabulary') }}"
                         class="flex items-center gap-3 px-4 py-3 rounded-2xl {{ request()->routeIs('admin.vocabulary') ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/40 font-bold' : 'text-slate-600 hover:bg-brand-50 hover:text-brand-600 font-medium' }} transition-all duration-300">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,68 +71,16 @@
                         </svg>
                         My Dashboard
                     </a>
-                </div>
-            </div>
 
-            <div>
-                <p class="px-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 mt-2">Course
-                    Modules</p>
-                <div class="space-y-1">
-                    @php
-                        // 1. Cek status Pre-Test secara global untuk sidebar
-                        $preTestActive = \App\Models\Test::where('type', 'pre-test')->where('is_active', true)->first();
-                        $isLocked = true;
-
-                        if ($preTestActive && auth()->check()) {
-                            $isLocked = !\App\Models\TestResult::where('user_id', auth()->id())
-                                ->where('test_id', $preTestActive->id)
-                                ->exists();
-                        } else {
-                            // Jika tidak ada pre-test aktif, maka modul tidak terkunci
-                            $isLocked = false;
-                        }
-
-                        // 2. Ambil daftar modul yang dipublikasikan
-                        $sideModules = \App\Models\Module::where('is_published', true)->orderBy('order')->get();
-                    @endphp
-
-                    @foreach ($sideModules as $m)
-                        @if ($isLocked)
-                            {{-- Tampilan Modul Terkunci: Tetap muncul tapi tidak bisa diklik --}}
-                            <div
-                                class="flex items-center justify-between px-4 py-3 text-slate-400 font-medium cursor-not-allowed group">
-                                <div class="flex items-center gap-3">
-                                    <svg class="w-5 h-5 opacity-50" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
-                                        </path>
-                                    </svg>
-                                    <span class="text-sm truncate w-32">{{ $m->title }}</span>
-                                </div>
-                                <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                                    </path>
-                                </svg>
-                            </div>
-                        @else
-                            {{-- Tampilan Modul Terbuka: Diarahkan ke halaman List Modul (bukan langsung reader) --}}
-                            <a href="{{ route('modules.index') }}"
-                                class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all group
-                    {{ request()->routeIs('modules.*') ? 'bg-brand-50 text-brand-600' : 'text-slate-600 hover:bg-brand-50 hover:text-brand-600' }}">
-
-                                <svg class="w-5 h-5 {{ request()->routeIs('modules.*') ? 'text-brand-600' : 'text-slate-400 group-hover:text-brand-600' }}"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
-                                    </path>
-                                </svg>
-                                <span class="text-sm truncate w-36">{{ $m->title }}</span>
-                            </a>
-                        @endif
-                    @endforeach
+                    <a href="{{ route('modules.index') }}"
+                        class="flex items-center gap-3 px-4 py-3 rounded-2xl {{ request()->routeIs('modules.*', 'student.reader', 'student.test') ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/40 font-bold' : 'text-slate-600 hover:bg-brand-50 hover:text-brand-600 font-medium' }} transition-all duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                            </path>
+                        </svg>
+                        Course Modules
+                    </a>
                 </div>
             </div>
         @endif
@@ -153,8 +90,7 @@
         @if (Auth::user()->roles->count() > 1)
             <div
                 class="px-4 py-2 mb-4 bg-brand-50 rounded-xl border border-brand-100 text-[10px] font-bold text-brand-600 uppercase text-center">
-                Multi-Role Access Active
-            </div>
+                Multi-Role Active</div>
         @endif
         <p class="text-[10px] text-center text-slate-400 font-bold tracking-widest uppercase">PahlawanHub v1.0</p>
     </div>

@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Student;
 
-use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\Module;
 use Livewire\Component;
@@ -10,36 +9,63 @@ use Illuminate\Support\Facades\Auth;
 
 class ModuleList extends Component
 {
-    public $modules;
-    public $hasCompletedPreTest = false;
+    public $filter = 'all';
 
-    public function mount()
+    public function setFilter($status)
     {
-        // 1. Cek apakah ada Pre-test yang aktif
-        $preTest = Test::where('type', 'pre-test')->where('is_active', true)->first();
+        $this->filter = $status;
+    }
 
-        // 2. Cek apakah mahasiswa sudah menyelesaikannya
-        if ($preTest && Auth::check()) {
-            $this->hasCompletedPreTest = TestResult::where('user_id', Auth::id())
-                ->where('test_id', $preTest->id)
-                ->exists();
-        } else {
-            // Jika tidak ada pre-test yang diatur admin, buka saja semua modul
-            $this->hasCompletedPreTest = true;
-        }
+    public function getModulesProperty()
+    {
+        $userId = Auth::id();
 
-        // 3. Ambil semua modul beserta jumlah halamannya (pages_count)
-        $this->modules = Module::where('is_published', true)
-            ->withCount(['pages' => function ($query) {
-                $query->where('is_published', true);
+        // HAPUS filter `is_published` di sini agar semua modul ditarik
+        $modules = Module::withCount(['pages' => function ($query) {
+            $query->where('is_published', true);
+        }])
+            ->with(['tests' => function ($query) {
+                $query->where('is_active', true);
             }])
             ->orderBy('order', 'asc')
-            ->get();
+            ->get()
+            ->map(function ($module) use ($userId) {
+                $preTest = $module->tests->where('type', 'pre-test')->first();
+                $postTest = $module->tests->where('type', 'post-test')->first();
+
+                $hasPreTestResult = $preTest
+                    ? TestResult::where('user_id', $userId)->where('test_id', $preTest->id)->exists()
+                    : true;
+
+                $hasPostTestResult = $postTest
+                    ? TestResult::where('user_id', $userId)->where('test_id', $postTest->id)->exists()
+                    : false;
+
+                $module->is_locked = !$hasPreTestResult;
+                $module->is_completed = $hasPostTestResult;
+                $module->pre_test_id = $preTest ? $preTest->id : null;
+                $module->post_test_id = $postTest ? $postTest->id : null;
+
+                return $module;
+            });
+
+        if ($this->filter === 'completed') {
+            return $modules->where('is_completed', true)->where('is_published', true);
+        } elseif ($this->filter === 'unlocked') {
+            return $modules->where('is_locked', false)->where('is_completed', false)->where('is_published', true);
+        } elseif ($this->filter === 'locked') {
+            return $modules->where('is_locked', true)->where('is_published', true);
+        } elseif ($this->filter === 'upcoming') {
+            return $modules->where('is_published', false);
+        }
+
+        return $modules;
     }
 
     public function render()
     {
-        return view('livewire.student.module-list')
-            ->layout('components.layouts.dashboard', ['title' => 'Course Modules']);
+        return view('livewire.student.module-list', [
+            'modules' => $this->modules
+        ])->layout('components.layouts.dashboard', ['title' => 'Course Modules']);
     }
 }

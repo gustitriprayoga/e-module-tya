@@ -1,130 +1,131 @@
-<div class="relative z-10">
-    <div class="mb-8">
-        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Welcome, {{ explode(' ', Auth::user()->name)[0] }}! 👋
-        </h1>
-        <p class="text-slate-500 mt-2">Your Speed Reading learning journey starts here.</p>
+<div class="relative z-10 max-w-7xl mx-auto pb-12">
+    <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+                Welcome back, {{ explode(' ', Auth::user()->name)[0] }}! 👋
+            </h1>
+            <p class="text-lg text-slate-500">Here is a quick overview of your reading progress.</p>
+        </div>
+        <div>
+            <a href="{{ route('modules.index') }}"
+                class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-8 py-3.5 rounded-2xl font-bold shadow-lg shadow-brand-500/30 transition-all hover:-translate-y-1">
+                Continue Learning
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3">
+                    </path>
+                </svg>
+            </a>
+        </div>
     </div>
 
-    @if (!$hasCompletedPreTest && $preTest)
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <div
-            class="bg-white/80 backdrop-blur-xl border border-white rounded-[32px] p-10 md:p-16 shadow-2xl shadow-brand-500/10 text-center max-w-3xl mx-auto relative overflow-hidden mb-12">
-            <div
-                class="absolute -top-24 -right-24 w-64 h-64 bg-brand-100 rounded-full blur-3xl opacity-50 pointer-events-none">
+            class="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm flex items-center gap-6 transition-transform hover:-translate-y-1">
+            <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center shrink-0">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                    </path>
+                </svg>
             </div>
-            <div
-                class="absolute -bottom-24 -left-24 w-64 h-64 bg-accent-100 rounded-full blur-3xl opacity-50 pointer-events-none">
-            </div>
-
-            <div class="relative z-10">
-                <div
-                    class="w-24 h-24 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border-4 border-white">
-                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                        </path>
-                    </svg>
-                </div>
-
-                <h2 class="text-3xl font-black text-slate-900 mb-4">Initial Assessment Required</h2>
-                <p class="text-lg text-slate-600 mb-8 max-w-lg mx-auto leading-relaxed">
-                    To personalize your learning experience and unlock the modules below, you must complete the <strong
-                        class="text-brand-600">{{ $preTest->title }}</strong>.
-                </p>
-
-                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-6 max-w-md mx-auto mb-8 text-left">
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="font-bold text-slate-500">Test Duration:</span>
-                        <span class="font-black text-slate-900">{{ $preTest->duration }} Minutes</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-slate-500">Total Questions:</span>
-                        <span class="font-black text-slate-900">{{ $preTest->questions()->count() }} Items</span>
-                    </div>
-                </div>
-
-                <a href="{{ route('student.test', $preTest->id) }}"
-                    class="inline-flex items-center gap-3 bg-brand-600 hover:bg-brand-700 text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-brand-500/30 transition-all hover:scale-105 hover:-translate-y-1">
-                    START PRE-TEST NOW
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                    </svg>
-                </a>
+            <div>
+                <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Modules Done</p>
+                <h3 class="text-3xl font-black text-slate-900">{{ $completedModules }} <span
+                        class="text-lg text-slate-400 font-medium">/ {{ $totalModules }}</span></h3>
             </div>
         </div>
-    @else
-        @if ($preTestScore !== null)
-            <div
-                class="bg-gradient-to-r from-brand-600 to-accent-600 rounded-[32px] p-8 text-white shadow-xl shadow-brand-500/20 mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
-                <div>
-                    <span
-                        class="bg-white/20 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest backdrop-blur-sm border border-white/10 mb-3 inline-block">Initial
-                        Assessment</span>
-                    <h2 class="text-2xl font-bold">Pre-test Completed!</h2>
-                    <p class="text-brand-100 mt-1">Your baseline score has been recorded. The modules are now unlocked.
-                    </p>
-                </div>
-                <div class="text-center bg-white/10 px-8 py-4 rounded-2xl backdrop-blur-md border border-white/20">
-                    <div class="text-sm font-bold text-brand-100 uppercase tracking-widest mb-1">Your Score</div>
-                    <div class="text-4xl font-black">{{ number_format($preTestScore, 1) }}</div>
-                </div>
-            </div>
-        @endif
-    @endif
 
-    <div class="mb-6 flex justify-between items-end">
-        <h3 class="text-xl font-extrabold text-slate-900">Learning Path</h3>
-        <span class="text-sm font-bold text-slate-500">{{ count($modules) }} Modules Available</span>
+        <div
+            class="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm flex items-center gap-6 transition-transform hover:-translate-y-1">
+            <div class="w-16 h-16 bg-brand-50 text-brand-500 rounded-2xl flex items-center justify-center shrink-0">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                    </path>
+                </svg>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Average Score</p>
+                <h3 class="text-3xl font-black text-slate-900">{{ number_format($averageScore, 1) }}</h3>
+            </div>
+        </div>
+
+        <div
+            class="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm flex items-center gap-6 transition-transform hover:-translate-y-1">
+            <div class="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center shrink-0">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Tests Completed</p>
+                <h3 class="text-3xl font-black text-slate-900">{{ count($recentActivities) }}</h3>
+            </div>
+        </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @forelse($modules as $index => $module)
-            @if (!$hasCompletedPreTest && $preTest)
-                <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-6 opacity-70 relative">
-                    <div class="absolute top-6 right-6 text-slate-300">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                            </path>
-                        </svg>
-                    </div>
+    <div class="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+        <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h3 class="text-xl font-extrabold text-slate-900">Recent Learning History</h3>
+            <a href="{{ route('modules.index') }}" class="text-sm font-bold text-brand-600 hover:text-brand-700">View
+                Curriculum &rarr;</a>
+        </div>
 
-                    <div
-                        class="w-12 h-12 bg-slate-200 text-slate-400 rounded-xl flex items-center justify-center font-black text-xl mb-6">
-                        {{ $index + 1 }}
-                    </div>
-                    <h4 class="text-lg font-extrabold text-slate-400 mb-2">{{ $module->title }}</h4>
-                    <p class="text-slate-400 text-sm line-clamp-2 mb-6">This content is currently locked.</p>
+        <div class="p-0">
+            @if (count($recentActivities) > 0)
+                <div class="divide-y divide-slate-100">
+                    @foreach ($recentActivities as $activity)
+                        <div
+                            class="p-6 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="flex items-center gap-5">
+                                <div
+                                    class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 {{ $activity->test && $activity->test->type === 'post-test' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600' }}">
+                                    @if ($activity->test && $activity->test->type === 'post-test')
+                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    @else
+                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                            </path>
+                                        </svg>
+                                    @endif
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-lg">
+                                        {{ $activity->test->title ?? 'Module Assessment' }}</h4>
+                                    <p class="text-sm text-slate-500 font-medium">
+                                        Completed on {{ $activity->created_at->format('d M Y, h:i A') }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Score</div>
+                                <div
+                                    class="text-3xl font-black {{ $activity->score >= 70 ? 'text-emerald-500' : 'text-slate-700' }}">
+                                    {{ number_format($activity->score, 0) }}
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             @else
-                <a href="{{ route('student.reader', ['module_slug' => $module->slug]) }}"
-                    class="group bg-white border border-slate-100 hover:border-brand-300 rounded-[32px] p-6 shadow-xl shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1 block relative overflow-hidden">
-
+                <div class="p-16 text-center">
                     <div
-                        class="w-12 h-12 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center font-black text-xl mb-6 group-hover:bg-brand-600 group-hover:text-white transition-colors">
-                        {{ $index + 1 }}
-                    </div>
-                    <h4 class="text-lg font-extrabold text-slate-900 mb-2 group-hover:text-brand-600 transition-colors">
-                        {{ $module->title }}</h4>
-                    <p class="text-slate-500 text-sm line-clamp-2 mb-6">{{ $module->description }}</p>
-
-                    <div class="flex items-center text-brand-600 font-bold text-sm">
-                        Start Learning
-                        <svg class="w-4 h-4 ml-2 group-hover:translate-x-2 transition-transform" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
+                        class="w-24 h-24 bg-slate-100 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                </a>
+                    <h4 class="text-xl font-bold text-slate-900 mb-2">No Activity Yet</h4>
+                    <p class="text-slate-500 max-w-md mx-auto leading-relaxed">You haven't completed any tests or
+                        modules yet. Head over to the Course Modules to get started!</p>
+                </div>
             @endif
-
-        @empty
-            <div class="col-span-full bg-white rounded-3xl p-10 text-center border border-slate-100">
-                <p class="text-slate-500 font-bold">No modules available yet. Please wait for the instructor to publish
-                    them.</p>
-            </div>
-        @endforelse
+        </div>
     </div>
 </div>

@@ -12,8 +12,9 @@ class TestResult extends Component
     public $currentTest;
     public $isPostTest = false;
 
-    public $preTestScore = null;
-    public $postTestScore = null;
+    // Default ke 0, jangan null agar tampilan tidak error
+    public $preTestScore = 0;
+    public $postTestScore = 0;
 
     public $nGainScore = 0;
     public $nGainCategory = '';
@@ -23,7 +24,8 @@ class TestResult extends Component
 
     public function mount($test_id)
     {
-        $this->currentTest = Test::findOrFail($test_id);
+        // Load test beserta relasi modulnya
+        $this->currentTest = Test::with('module')->findOrFail($test_id);
 
         $currentResult = ResultModel::where('user_id', Auth::id())
             ->where('test_id', $this->currentTest->id)
@@ -34,20 +36,25 @@ class TestResult extends Component
             $this->isPostTest = true;
             $this->postTestScore = (float) $currentResult->score;
 
-            // FIX: Cari pre-test yang berelasi dengan module yang SAMA
-            // dengan cara join ke tabel tests untuk filter berdasarkan module_id
-            $preTestResult = ResultModel::where('user_id', Auth::id())
+            // Cari pre-test dengan query yang AMAN (Tahan Banting)
+            $preTestQuery = ResultModel::where('user_id', Auth::id())
                 ->whereHas('test', function ($query) {
-                    $query->where('type', 'pre-test')
-                        ->where('module_id', $this->currentTest->module_id);
+                    $query->where('type', 'pre-test');
+                    // Hanya filter module_id JIKA currentTest memiliki module_id
+                    if ($this->currentTest->module_id) {
+                        $query->where('module_id', $this->currentTest->module_id);
+                    }
                 })
                 ->latest()
                 ->first();
 
-            if ($preTestResult) {
-                $this->preTestScore = (float) $preTestResult->score;
-                $this->calculateNGain();
+            // Jika nilai ditemukan, masukkan. Jika tidak, tetap 0.
+            if ($preTestQuery) {
+                $this->preTestScore = (float) $preTestQuery->score;
             }
+
+            // Selalu jalankan kalkulasi N-Gain saat Post-Test
+            $this->calculateNGain();
         } else {
             $this->isPostTest = false;
             $this->preTestScore = (float) $currentResult->score;
@@ -65,7 +72,7 @@ class TestResult extends Component
         // Edge case: pre-test sudah 100
         if ($pre == 100) {
             if ($post == 100) {
-                $this->nGainScore    = 1; // sempurna
+                $this->nGainScore    = 1;
                 $this->nGainCategory = 'Maksimal (Perfect)';
             } else {
                 $this->isDecrease    = true;
@@ -78,19 +85,16 @@ class TestResult extends Component
         // Kalkulasi normal
         $this->nGainScore = $this->gainActual / $this->gainMax;
 
-        // FIX: urutan kondisi harus dari besar ke kecil,
-        // dan 0 harus dicek SEBELUM < 0.3
+        // Kategorisasi
         if ($this->nGainScore >= 0.7) {
             $this->nGainCategory = 'Tinggi (High)';
         } elseif ($this->nGainScore >= 0.3) {
             $this->nGainCategory = 'Sedang (Medium)';
         } elseif ($this->nGainScore > 0) {
-            // FIX: > 0, bukan >= 0. Nilai 0.00 tidak masuk sini.
             $this->nGainCategory = 'Rendah (Low)';
         } elseif ($this->nGainScore == 0) {
             $this->nGainCategory = 'Tetap (No Change)';
         } else {
-            // nGainScore < 0
             $this->isDecrease    = true;
             $this->nGainCategory = 'Penurunan (Decrease)';
         }

@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Student;
 
-use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\Module;
 use Livewire\Component;
@@ -10,38 +9,41 @@ use Illuminate\Support\Facades\Auth;
 
 class Dashboard extends Component
 {
-    public $preTest;
-    public $hasCompletedPreTest = false;
-    public $preTestScore = null;
+    public $totalModules = 0;
+    public $completedModules = 0;
+    public $averageScore = 0;
+    public $recentActivities = [];
 
     public function mount()
     {
-        // 1. Cari Pre-test yang sedang diaktifkan oleh Admin
-        $this->preTest = Test::where('type', 'pre-test')->where('is_active', true)->first();
+        $userId = Auth::id();
 
-        if ($this->preTest) {
-            // 2. Cek apakah user sudah mengerjakannya
-            $result = TestResult::where('user_id', Auth::id())
-                ->where('test_id', $this->preTest->id)
-                ->first();
+        // 1. Total Modul yang Tersedia
+        $this->totalModules = Module::where('is_published', true)->count();
 
-            if ($result) {
-                $this->hasCompletedPreTest = true;
-                $this->preTestScore = $result->score;
-            }
-        } else {
-            // Fail-safe: Jika admin belum mengaktifkan pre-test apapun, buka saja modulnya
-            $this->hasCompletedPreTest = true;
+        // 2. Ambil Riwayat Ujian (Terbaru)
+        $results = TestResult::with('test.module')
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        if ($results->count() > 0) {
+            // Rata-rata Nilai
+            $this->averageScore = $results->avg('score');
+
+            // Hitung modul yang sudah lulus (Post-Test Selesai)
+            $this->completedModules = $results->filter(function ($result) {
+                return $result->test && $result->test->type === 'post-test';
+            })->unique('test.module_id')->count();
         }
+
+        // Ambil 5 riwayat terbaru untuk tabel
+        $this->recentActivities = $results->take(5);
     }
 
     public function render()
     {
-        // 3. Ambil SEMUA modul untuk ditampilkan (meskipun nanti statusnya terkunci di view)
-        $modules = Module::where('is_published', true)->orderBy('order')->get();
-
-        return view('livewire.student.dashboard', [
-            'modules' => $modules
-        ])->layout('components.layouts.dashboard', ['title' => 'Student Dashboard']);
+        return view('livewire.student.dashboard')
+            ->layout('components.layouts.dashboard', ['title' => 'Student Dashboard']);
     }
 }
