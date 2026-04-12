@@ -8,9 +8,8 @@
         <a href="/" class="flex items-center gap-3 group">
             <div
                 class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-accent-600 flex items-center justify-center shadow-lg shadow-brand-500/30 text-white font-black text-xl group-hover:scale-110 transition-transform">
-                UP</div>
-            <span class="font-extrabold text-xl tracking-tight text-slate-900">Pahlawan<span
-                    class="text-brand-600">Hub</span></span>
+                LF</div>
+            Lit<span class="text-brand-600">Flow</span>
         </a>
     </div>
 
@@ -92,6 +91,8 @@
                 class="px-4 py-2 mb-4 bg-brand-50 rounded-xl border border-brand-100 text-[10px] font-bold text-brand-600 uppercase text-center">
                 Multi-Role Active</div>
         @endif
-        <p class="text-[10px] text-center text-slate-400 font-bold tracking-widest uppercase">PahlawanHub v1.0</p>
+        <p class="text-[10px] text-center text-slate-400 font-bold tracking-widest uppercase">Literature and Flow state
+            v1.0
+        </p>
     </div>
 </aside>

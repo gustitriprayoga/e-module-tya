@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\Test;
 use App\Models\Question;
+use App\Models\Module;
 use Livewire\Component;
 use Livewire\WithPagination;
 use RealRashid\SweetAlert\Facades\Alert;
@@ -14,7 +15,7 @@ class TestManager extends Component
 
     // Properties for Test CRUD
     public $search = '';
-    public $test_id, $title, $type = 'pre-test', $duration = 60, $passing_score = 70, $is_active = false;
+    public $test_id, $title, $module_id, $type = 'pre-test', $duration = 60, $passing_score = 70, $is_active = false;
     public $isModalOpen = false;
 
     // Properties for Question Management (Attach/Detach)
@@ -32,15 +33,19 @@ class TestManager extends Component
 
     public function render()
     {
-        // 1. Load Tests
+        // 1. Load Tests (beserta relasi Module-nya)
         $tests = Test::withCount('questions')
+            ->with('module')
             ->when($this->search, function ($query) {
                 $query->where('title', 'like', '%' . $this->search . '%');
             })
             ->latest()
-            ->paginate(10);
+            ->paginate(12);
 
-        // 2. Load Questions for Modal (If open)
+        // 2. Load Modules untuk Dropdown Form
+        $modules = Module::orderBy('order', 'asc')->get();
+
+        // 3. Load Questions for Modal (If open)
         $availableQuestions = [];
         if ($this->isQuestionModalOpen) {
             $availableQuestions = Question::when($this->questionSearch, function ($query) {
@@ -60,6 +65,7 @@ class TestManager extends Component
 
         return view('livewire.admin.test-manager', [
             'tests' => $tests,
+            'modules' => $modules,
             'availableQuestions' => $availableQuestions,
             'indicators' => $indicators
         ])->layout('components.layouts.dashboard', ['title' => 'Test Manager']);
@@ -79,6 +85,7 @@ class TestManager extends Component
         $test = Test::findOrFail($id);
         $this->test_id = $id;
         $this->title = $test->title;
+        $this->module_id = $test->module_id; // Tarik data modul
         $this->type = $test->type;
         $this->duration = $test->duration;
         $this->passing_score = $test->passing_score;
@@ -91,13 +98,26 @@ class TestManager extends Component
     {
         $this->validate([
             'title' => 'required|string|max:255',
-            'type' => 'required|in:pre-test,post-test',
+            'module_id' => 'required|exists:modules,id', // Pastikan module wajib diisi
+            'type' => 'required|in:pre-test,post-test,quiz',
             'duration' => 'required|integer|min:1',
             'passing_score' => 'required|integer|min:1|max:100',
         ]);
 
+        // Validasi: 1 Modul hanya boleh punya 1 Pre-Test dan 1 Post-Test
+        $existingTest = Test::where('module_id', $this->module_id)
+            ->where('type', $this->type)
+            ->where('id', '!=', $this->test_id)
+            ->first();
+
+        if ($existingTest) {
+            toast("This module already has a {$this->type}. Please edit the existing one.", 'warning');
+            return;
+        }
+
         Test::updateOrCreate(['id' => $this->test_id], [
             'title' => $this->title,
+            'module_id' => $this->module_id, // Simpan ID Modul
             'type' => $this->type,
             'duration' => $this->duration,
             'passing_score' => $this->passing_score,
@@ -119,6 +139,7 @@ class TestManager extends Component
     {
         $this->test_id = null;
         $this->title = '';
+        $this->module_id = '';
         $this->type = 'pre-test';
         $this->duration = 60;
         $this->passing_score = 70;

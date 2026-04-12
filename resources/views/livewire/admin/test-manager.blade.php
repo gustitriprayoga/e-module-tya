@@ -11,7 +11,7 @@
                 </div>
                 Test Manager
             </h1>
-            <p class="text-slate-500 mt-2">Configure Pre-test and Post-test parameters and assign questions.</p>
+            <p class="text-slate-500 mt-2">Configure Pre-tests, Post-tests, and assign questions to modules.</p>
         </div>
         <button wire:click="create"
             class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-6 py-3.5 rounded-2xl font-bold shadow-lg shadow-brand-500/30 transition-all active:scale-95">
@@ -22,12 +22,16 @@
         </button>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         @forelse($tests as $test)
             <div
                 class="bg-white/80 backdrop-blur-xl border border-white rounded-[32px] p-6 md:p-8 shadow-xl shadow-slate-200/50 flex flex-col relative group hover:border-brand-300 transition-all duration-300">
 
-                <div class="absolute top-6 right-6">
+                <div class="absolute top-6 right-6 flex items-center gap-2">
+                    <span
+                        class="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200">
+                        {{ str_replace('-', ' ', $test->type) }}
+                    </span>
                     @if ($test->is_active)
                         <span class="flex h-3 w-3 relative" title="Test is Live">
                             <span
@@ -39,14 +43,11 @@
                     @endif
                 </div>
 
-                <div class="mb-4">
-                    <span
-                        class="px-3 py-1 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg">
-                        {{ str_replace('-', ' ', $test->type) }}
-                    </span>
-                </div>
-
-                <h3 class="text-xl font-extrabold text-slate-900 mb-4">{{ $test->title }}</h3>
+                <h3 class="text-xl font-extrabold text-slate-900 mb-1 pr-24 line-clamp-2">{{ $test->title }}</h3>
+                <p class="text-xs font-bold text-brand-600 uppercase tracking-widest mb-6">
+                    <span class="text-slate-400">Module:</span>
+                    {{ $test->module ? $test->module->title : 'Unassigned' }}
+                </p>
 
                 <div class="space-y-3 mb-8">
                     <div class="flex justify-between items-center text-sm font-bold border-b border-slate-100 pb-2">
@@ -58,9 +59,11 @@
                         <span class="text-emerald-600">{{ $test->passing_score }}</span>
                     </div>
                     <div class="flex justify-between items-center text-sm font-bold pb-2">
-                        <span class="text-slate-500">Total Questions</span>
-                        <span class="text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md">{{ $test->questions_count }}
-                            Items</span>
+                        <span class="text-slate-500">Question Bank</span>
+                        <span
+                            class="{{ $test->questions_count > 0 ? 'text-brand-600 bg-brand-50' : 'text-slate-500 bg-slate-100' }} px-2 py-0.5 rounded-md">
+                            {{ $test->questions_count }} Items
+                        </span>
                     </div>
                 </div>
 
@@ -97,6 +100,10 @@
         @endforelse
     </div>
 
+    <div class="mt-8">
+        {{ $tests->links() }}
+    </div>
+
     <div x-show="modalOpen" class="fixed inset-0 z-[100] flex items-center justify-center px-4" x-cloak>
         <div x-show="modalOpen" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
             @click="modalOpen = false"></div>
@@ -105,12 +112,28 @@
             class="relative bg-white rounded-[40px] shadow-2xl w-full max-w-xl overflow-hidden border border-slate-100">
             <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h2 class="text-2xl font-extrabold text-slate-900">{{ $test_id ? 'Edit Test' : 'Configure Test' }}</h2>
-                <button wire:click="$set('isModalOpen', false)" class="text-slate-400 p-2"><svg class="w-6 h-6"
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button wire:click="$set('isModalOpen', false)"
+                    class="text-slate-400 hover:text-slate-700 bg-white border border-slate-200 p-2 rounded-full"><svg
+                        class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M6 18L18 6M6 6l12 12" stroke-width="2" />
                     </svg></button>
             </div>
+
             <form wire:submit.prevent="save" class="p-8 space-y-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Target Module</label>
+                    <select wire:model="module_id"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 font-bold outline-none focus:ring-4 focus:ring-brand-500/20 text-slate-700">
+                        <option value="">-- Select Module --</option>
+                        @foreach ($modules as $mod)
+                            <option value="{{ $mod->id }}">{{ $mod->title }}</option>
+                        @endforeach
+                    </select>
+                    @error('module_id')
+                        <span class="text-red-500 text-xs font-bold">{{ $message }}</span>
+                    @enderror
+                </div>
+
                 <div class="flex gap-4">
                     <div class="flex-1">
                         <label class="block text-sm font-bold text-slate-700 mb-2">Test Title</label>
@@ -133,26 +156,30 @@
 
                 <div class="flex gap-4">
                     <div class="flex-1">
-                        <label class="block text-sm font-bold text-slate-700 mb-2">Duration (Minutes)</label>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Duration (Mins)</label>
                         <input wire:model="duration" type="number"
                             class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 font-bold outline-none text-center">
                     </div>
                     <div class="flex-1">
-                        <label class="block text-sm font-bold text-slate-700 mb-2">Passing Score (KKM)</label>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Passing Score</label>
                         <input wire:model="passing_score" type="number"
                             class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 font-bold outline-none text-center text-emerald-600">
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 pt-2">
+                <div class="flex items-center gap-3 pt-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                     <div class="relative inline-block w-12 align-middle select-none">
                         <input wire:model="is_active" type="checkbox" id="toggleActive"
                             class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 z-10 checked:translate-x-6 checked:border-emerald-500" />
                         <label for="toggleActive"
                             class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-200 cursor-pointer transition-colors duration-200 peer-checked:bg-emerald-500"></label>
                     </div>
-                    <label for="toggleActive" class="text-sm font-bold text-slate-700">Activate / Publish to
-                        Students</label>
+                    <div>
+                        <label for="toggleActive" class="text-sm font-bold text-slate-900 cursor-pointer">Activate /
+                            Publish to Students</label>
+                        <p class="text-xs text-slate-500 mt-0.5">Students can access this test once the module is
+                            published.</p>
+                    </div>
                 </div>
 
                 <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
@@ -176,22 +203,22 @@
                     <span class="text-brand-600">{{ count($selectedQuestions) }}</span> Selected
                 </div>
                 <button wire:click="saveQuestions"
-                    class="bg-brand-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg hover:bg-brand-700 transition-all">Save
+                    class="bg-brand-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all">Save
                     & Close</button>
                 <button wire:click="$set('isQuestionModalOpen', false)"
-                    class="p-2 text-slate-400 hover:text-slate-600"><svg class="w-6 h-6" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
+                    class="p-2 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><svg
+                        class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M6 18L18 6M6 6l12 12" stroke-width="2" />
                     </svg></button>
             </div>
         </div>
 
-        <div class="bg-white border-b border-slate-200 p-4 px-8 flex gap-4 shrink-0">
+        <div class="bg-white border-b border-slate-200 p-4 px-8 flex gap-4 shrink-0 shadow-sm">
             <input wire:model.live.debounce.300ms="questionSearch" type="text"
                 placeholder="Search specific questions..."
-                class="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 outline-none">
+                class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl py-3 px-5 outline-none focus:ring-4 focus:ring-brand-500/20 transition-all font-medium">
             <select wire:model.live="indicatorFilter"
-                class="bg-slate-50 border border-slate-200 rounded-xl px-4 outline-none font-bold">
+                class="bg-slate-50 border border-slate-200 rounded-2xl px-5 outline-none font-bold text-slate-600 focus:ring-4 focus:ring-brand-500/20 transition-all">
                 <option value="">All Indicators</option>
                 @foreach ($indicators as $ind)
                     <option value="{{ $ind }}">{{ $ind }}</option>
@@ -200,29 +227,45 @@
         </div>
 
         <div class="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
-            <div class="space-y-3">
+            <div class="space-y-4">
                 @forelse($availableQuestions as $q)
                     <label
-                        class="flex items-start gap-4 p-5 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:border-brand-300 transition-colors {{ in_array($q->id, $selectedQuestions) ? 'ring-2 ring-brand-500/20 border-brand-500 bg-brand-50/10' : '' }}">
+                        class="flex items-start gap-4 p-6 bg-white border border-slate-200 rounded-3xl cursor-pointer hover:border-brand-300 hover:shadow-lg transition-all {{ in_array($q->id, $selectedQuestions) ? 'ring-2 ring-brand-500/20 border-brand-500 bg-brand-50/10' : '' }}">
                         <div class="mt-1">
                             <input type="checkbox" wire:model.live="selectedQuestions" value="{{ $q->id }}"
-                                class="w-5 h-5 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                                class="w-6 h-6 text-brand-600 rounded-lg border-slate-300 focus:ring-brand-500">
                         </div>
                         <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
+                            <div class="flex items-center gap-2 mb-2">
                                 <span
-                                    class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black uppercase rounded">{{ $q->indicator }}</span>
+                                    class="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase rounded-lg tracking-widest">{{ $q->indicator }}</span>
                                 @if ($q->passage)
                                     <span
-                                        class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded">Passage
-                                        Included</span>
+                                        class="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded-lg tracking-widest flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                            </path>
+                                        </svg>
+                                        Passage Attached
+                                    </span>
                                 @endif
                             </div>
-                            <p class="font-bold text-slate-800 text-lg leading-snug">{{ $q->question_text }}</p>
+                            <p class="font-bold text-slate-800 text-lg leading-relaxed">{{ $q->question_text }}</p>
                         </div>
                     </label>
                 @empty
-                    <div class="text-center py-10 text-slate-500 font-bold">No questions match your filter.</div>
+                    <div class="text-center py-20 bg-white border-2 border-dashed border-slate-200 rounded-[32px]">
+                        <div
+                            class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg></div>
+                        <p class="text-slate-600 font-bold text-lg">No questions match your filter.</p>
+                        <p class="text-slate-400 text-sm mt-1">Try adjusting your search or indicator selection.</p>
+                    </div>
                 @endforelse
             </div>
         </div>
@@ -245,18 +288,22 @@
     </style>
 </div>
 
-
 @script
     <script>
         window.confirmDeleteTest = function(id) {
             if (typeof Swal === 'undefined') return;
             Swal.fire({
                 title: 'Delete Test?',
-                text: "This will remove the test and all its settings. Question bank will NOT be deleted.",
+                text: "This will remove the test and its settings. The questions in the bank will NOT be deleted.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#e11d48',
-                confirmButtonText: 'Yes, Delete'
+                confirmButtonText: 'Yes, Delete',
+                customClass: {
+                    popup: 'rounded-[32px] shadow-2xl border border-slate-100',
+                    confirmButton: 'rounded-xl px-6 py-3 font-bold',
+                    cancelButton: 'rounded-xl px-6 py-3 font-bold'
+                }
             }).then((result) => {
                 if (result.isConfirmed) $wire.deleteTest(id);
             });

@@ -110,6 +110,11 @@ class ContentBuilder extends Component
         $this->isModalOpen = true;
     }
 
+    public function highlightVocabulary($text)
+    {
+        return $text; // Return teks aslinya saja, highlighter aslinya berjalan di ModuleReader (student)
+    }
+
     private function resetInputFields()
     {
         $this->block_id = null;
