@@ -1,15 +1,15 @@
-<div class="w-full max-w-md relative z-10" x-data="{ loading: false }">
+<div class="w-full max-w-md relative z-10">
     <div class="text-center mb-8">
         <div
             class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-600 to-accent-600 shadow-xl shadow-brand-500/30 mb-5">
-            <span class="text-white font-black text-3xl tracking-tighter">UP</span>
+            <span class="text-white font-black text-3xl tracking-tighter">LF</span>
         </div>
         <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Welcome Back</h2>
-        <p class="text-slate-600 mt-2 font-medium">Login to Digital Learning</p>
+        <p class="text-slate-600 mt-2 font-medium">Login to LitFlow System</p>
     </div>
 
     <div class="bg-white/80 backdrop-blur-2xl border border-white shadow-2xl rounded-[32px] p-8 md:p-10">
-        <form wire:submit.prevent="login" @submit="loading = true">
+        <form wire:submit.prevent="login">
 
             <div class="mb-6">
                 <label class="block text-sm font-bold text-slate-800 mb-2 ml-1">Username / NIM</label>
@@ -22,7 +22,7 @@
                     </span>
                     <input wire:model="username" type="text" required
                         class="w-full bg-white/60 border border-slate-300 rounded-2xl py-3.5 pl-11 pr-4 focus:bg-white focus:ring-4 focus:ring-brand-500/20 focus:border-brand-500 transition-all outline-none text-slate-900 font-medium placeholder-slate-400"
-                        placeholder="1855201011">
+                        placeholder="e.g. 1855201011">
                 </div>
                 @error('username')
                     <span class="text-red-500 text-xs mt-1 ml-1 font-semibold">{{ $message }}</span>
@@ -48,11 +48,12 @@
                 @enderror
             </div>
 
-            <button type="submit" :disabled="loading"
+            <button type="submit" wire:loading.attr="disabled"
                 class="w-full bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white font-bold py-4 rounded-2xl shadow-lg shadow-brand-500/40 transform transition-all active:scale-[0.98] flex items-center justify-center gap-3">
-                <span x-show="!loading">Sign In to Dashboard</span>
 
-                <span x-cloak x-show="loading" class="flex items-center gap-2">
+                <span wire:loading.remove wire:target="login">Sign In to Dashboard</span>
+
+                <span wire:loading wire:target="login" class="flex items-center gap-2">
                     <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                         viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
@@ -81,3 +82,22 @@
             to Homepage</a>
     </p>
 </div>
+
+@script
+    <script>
+        $wire.on('swal:alert', (event) => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: event[0].icon,
+                    title: event[0].title,
+                    text: event[0].text,
+                    confirmButtonColor: '#2563eb',
+                    customClass: {
+                        popup: 'rounded-3xl shadow-2xl border border-slate-100',
+                        confirmButton: 'rounded-xl px-6 py-3 font-bold',
+                    }
+                });
+            }
+        });
+    </script>
+@endscript
