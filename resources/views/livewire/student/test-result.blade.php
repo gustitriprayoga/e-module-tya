@@ -10,7 +10,8 @@
         </div>
         <h1 class="text-4xl font-black text-slate-900 tracking-tight mb-3">Congratulations!</h1>
         <p class="text-lg text-slate-500">You have successfully completed the
-            <strong>{{ $currentTest->title }}</strong>.</p>
+            <strong>{{ $currentTest->title }}</strong>.
+        </p>
     </div>
 
     @if (!$isPostTest)
@@ -25,7 +26,7 @@
 
             <p class="text-slate-500 mb-10 max-w-sm mx-auto">This score will be used to measure your improvement
                 (N-Gain) after you complete the interactive modules.</p>
-            <a href="{{ route('modules.index') }}"
+            <a href="{{ route('modules.student.index') }}"
                 class="inline-block px-10 py-4 bg-brand-600 text-white rounded-2xl font-black shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-transform hover:-translate-y-1">Continue
                 to Modules &rarr;</a>
         </div>
@@ -184,7 +185,8 @@
                             @if ($nGainCategory === 'Maksimal (Perfect)')
                                 <div
                                     class="text-emerald-600 bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-sm">
-                                    <strong>Perfect Score Maintained.</strong> Both Pre-Test and Post-Test = 100.</div>
+                                    <strong>Perfect Score Maintained.</strong> Both Pre-Test and Post-Test = 100.
+                                </div>
                             @elseif ($preTestScore == 100 && $postTestScore < 100)
                                 <div class="text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 text-sm">
                                     <strong>Invalid Formula:</strong> Pre-Test is already 100. Result is a Decrease.

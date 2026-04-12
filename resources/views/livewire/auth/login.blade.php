@@ -5,7 +5,7 @@
             <span class="text-white font-black text-3xl tracking-tighter">UP</span>
         </div>
         <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Welcome Back</h2>
-        <p class="text-slate-600 mt-2 font-medium">Login to PahlawanHub Digital Learning</p>
+        <p class="text-slate-600 mt-2 font-medium">Login to Digital Learning</p>
     </div>
 
     <div class="bg-white/80 backdrop-blur-2xl border border-white shadow-2xl rounded-[32px] p-8 md:p-10">

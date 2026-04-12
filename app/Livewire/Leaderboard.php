@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\ReadingHistory;
 use Livewire\Component;
+use Illuminate\Support\Facades\DB;
 
 class Leaderboard extends Component
 {
@@ -11,7 +12,7 @@ class Leaderboard extends Component
     {
         // Mengambil 20 peringkat teratas berdasarkan WPM
         $rankings = ReadingHistory::with('user')
-            ->select('user_id', \DB::raw('MAX(wpm_result) as top_wpm'))
+            ->select('user_id', DB::raw('MAX(wpm_result) as top_wpm'))
             ->groupBy('user_id')
             ->orderBy('top_wpm', 'desc')
             ->take(20)
@@ -19,6 +20,6 @@ class Leaderboard extends Component
 
         return view('livewire.leaderboard', [
             'rankings' => $rankings
-        ])->title('Reading Leaderboard - PahlawanHub');
+        ])->title('Reading Leaderboard - LitFlow');
     }
 }

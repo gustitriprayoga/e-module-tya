@@ -14,7 +14,7 @@ class DummyDataSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->command->info('Memulai injeksi data dummy PahlawanHub...');
+        $this->command->info('Memulai injeksi data dummy LitFlow...');
 
         // ==========================================
         // 1. SEEDING VOCABULARY VAULT

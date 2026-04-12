@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('test_id')->constrained('tests')->cascadeOnDelete();
             $table->text('passage')->nullable(); // Untuk cerita/teks panjang
             $table->text('question_text');      // Pertanyaan
             $table->string('indicator');        // Indikator Reading

@@ -17,8 +17,13 @@ class Test extends Model
 
     public function questions()
     {
-        return $this->belongsToMany(Question::class, 'test_questions')
-            ->withPivot('sort_order')
-            ->orderByPivot('sort_order', 'asc'); // Gunakan orderByPivot
+        return $this->hasMany(Question::class);
     }
+
+    // public function questions()
+    // {
+    //     return $this->belongsToMany(Question::class, 'test_questions')
+    //         ->withPivot('sort_order')
+    //         ->orderByPivot('sort_order', 'asc'); // Gunakan orderByPivot
+    // }
 }

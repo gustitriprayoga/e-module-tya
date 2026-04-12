@@ -6,20 +6,21 @@ use Illuminate\Database\Seeder;
 use App\Models\Vocabulary;
 use App\Models\Question;
 use App\Models\Test;
-use App\Models\Module; // WAJIB DITAMBAHKAN UNTUK RELASI MODUL
+use App\Models\Module;
 
 class VocabularyAndTestSeeder extends Seeder
 {
     public function run(): void
     {
         // ==========================================
-        // 1. SEEDING VOCABULARY (Global)
+        // 1. SEEDING VOCABULARY (Kosa Kata Target)
         // ==========================================
         $vocabularies = [
-            ['word' => 'Comprehension', 'definition' => 'The action or capability of understanding something.', 'context' => 'Reading comprehension is crucial for academic success.'],
-            ['word' => 'Synthesize', 'definition' => 'Combine a number of things into a coherent whole.', 'context' => 'Students must synthesize information from various sources.'],
-            ['word' => 'Deconstruct', 'definition' => 'Analyze a text or linguistic or conceptual system.', 'context' => 'We need to deconstruct the author’s argument.'],
-            ['word' => 'Inference', 'definition' => 'A conclusion reached on the basis of evidence and reasoning.', 'context' => 'Making inferences requires reading between the lines.'],
+            ['word' => 'comprehension', 'definition' => 'The action or capability of understanding something.', 'context' => 'Reading comprehension is crucial for academic success.'],
+            ['word' => 'synthesize', 'definition' => 'Combine a number of things into a coherent whole.', 'context' => 'Students must synthesize information from various sources.'],
+            ['word' => 'deconstruct', 'definition' => 'Analyze a text or linguistic or conceptual system.', 'context' => 'We need to deconstruct the author’s argument.'],
+            ['word' => 'inference', 'definition' => 'A conclusion reached on the basis of evidence and reasoning.', 'context' => 'Making inferences requires reading between the lines.'],
+            ['word' => 'mitigate', 'definition' => 'Make less severe, serious, or painful.', 'context' => 'We must mitigate the risks of climate change.'],
         ];
 
         foreach ($vocabularies as $vocab) {
@@ -28,33 +29,35 @@ class VocabularyAndTestSeeder extends Seeder
                 [
                     'definition' => $vocab['definition'],
                     'context_sentence' => $vocab['context'],
-                    'level' => 'General',
-                    'category' => 'noun'
+                    'level' => 'B2',
+                    'category' => 'Academic'
                 ]
             );
         }
 
-        // Ambil modul pertama dari database (yang sudah dibuat oleh ModuleAndPageSeeder)
-        $module = Module::first();
-
-        // Jika modul belum ada (sebagai pengaman), kita buatkan modul dummy
+        // Ambil Modul Speed Reading dari database
+        $module = Module::where('slug', 'reading-ii-speed-reading')->first();
         if (!$module) {
-            $module = Module::create([
-                'title' => 'Reading II: Speed Reading',
-                'slug' => 'reading-ii-speed-reading',
-                'is_published' => true,
-                'order' => 1
-            ]);
+            $this->command->warn('Module not found. Run ModuleAndPageSeeder first!');
+            return;
         }
 
         // ==========================================
-        // 2. MEMBUAT PRE-TEST (Khusus untuk Modul Tersebut)
+        // BLUEPRINT INDIKATOR SOAL (Sesuai Laporan Skripsi)
+        // ==========================================
+        $blueprintIndicators = [
+            'Identifying Main Idea',       // Item: 1, 6, 11, 16, 21, 26
+            'Locating Specific Information', // Item: 2, 7, 12, 17, 22, 27
+            'Making Inference',            // Item: 3, 8, 13, 18, 23, 28
+            'Vocabulary in context',       // Item: 4, 9, 14, 19, 24, 29
+            'Reference Identification'     // Item: 5, 10, 15, 20, 25, 30
+        ];
+
+        // ==========================================
+        // 2. GENERATE PRE-TEST (30 SOAL)
         // ==========================================
         $preTest = Test::firstOrCreate(
-            [
-                'type' => 'pre-test',
-                'module_id' => $module->id // PENAMBAHAN MODULE_ID DI SINI
-            ],
+            ['type' => 'pre-test', 'module_id' => $module->id],
             [
                 'title' => 'Pre-Test: ' . $module->title,
                 'duration' => 60,
@@ -63,70 +66,44 @@ class VocabularyAndTestSeeder extends Seeder
             ]
         );
 
-        // ==========================================
-        // 3. SEEDING BANK SOAL & MENGHUBUNGKANNYA KE PRE-TEST
-        // ==========================================
-        $questions = [
-            [
-                'indicator' => 'Main Idea',
-                'question_text' => 'What is the primary message the author intends to convey in paragraph 2?',
-                'options' => ['A' => 'Global warming causes', 'B' => 'Economic impacts', 'C' => 'Technological solutions', 'D' => 'Historical weather patterns', 'E' => 'None of the above'],
-                'correct_answer' => 'A'
-            ],
-            [
-                'indicator' => 'Supporting Detail',
-                'question_text' => 'According to the text, in what year did the industrial revolution significantly impact carbon emissions?',
-                'options' => ['A' => '1750', 'B' => '1850', 'C' => '1950', 'D' => '2000', 'E' => '2010'],
-                'correct_answer' => 'B'
-            ],
-            [
-                'indicator' => 'Inference',
-                'question_text' => 'It can be inferred from the passage that the author believes...',
-                'options' => ['A' => 'Immediate action is required', 'B' => 'The situation will resolve itself', 'C' => 'Technology alone cannot help', 'D' => 'Governments are overreacting', 'E' => 'Scientists are manipulating data'],
-                'correct_answer' => 'A'
-            ],
-            [
-                'indicator' => 'Vocabulary in Context',
-                'question_text' => 'The word "mitigate" in line 15 is closest in meaning to...',
-                'options' => ['A' => 'Worsen', 'B' => 'Alleviate', 'C' => 'Ignore', 'D' => 'Complicate', 'E' => 'Produce'],
-                'correct_answer' => 'B'
-            ],
-            [
-                'indicator' => 'Reference',
-                'question_text' => 'The pronoun "they" in paragraph 4 refers to...',
-                'options' => ['A' => 'The researchers', 'B' => 'The emissions', 'C' => 'The solutions', 'D' => 'The climate models', 'E' => 'The political leaders'],
-                'correct_answer' => 'A'
-            ]
-        ];
+        $preTest->questions()->delete(); // Bersihkan soal lama jika di-seed ulang
 
-        foreach ($questions as $q) {
-            $question = Question::firstOrCreate(
-                ['question_text' => $q['question_text']],
-                ['indicator' => $q['indicator']]
-            );
+        // Looping 6 Teks Bacaan (Passages) x 5 Soal = 30 Soal
+        for ($passageIndex = 0; $passageIndex < 6; $passageIndex++) {
+            $passageNumber = $passageIndex + 1;
 
-            $question->options()->delete();
+            // Dummy Passage Text (Nanti bisa diedit via Admin Panel)
+            $passageText = "This is Reading Passage {$passageNumber} for the Pre-Test. The rapid development of technology has changed how students read. According to Dr. Smith in 2023, comprehension rates drop by 15% when reading on screens. Therefore, it is important to mitigate these effects through focused reading strategies. They suggest using the SQ3R method.";
 
-            foreach ($q['options'] as $key => $optionText) {
-                $question->options()->create([
-                    'option_text' => $optionText,
-                    'is_correct' => ($key === $q['correct_answer'])
+            foreach ($blueprintIndicators as $indicatorIndex => $indicatorName) {
+                // Hitung Nomor Soal (1 sampai 30)
+                $questionNumber = ($passageIndex * 5) + ($indicatorIndex + 1);
+
+                $question = $preTest->questions()->create([
+                    'passage' => $passageText,
+                    'question_text' => "Question {$questionNumber}: Which option best demonstrates the '{$indicatorName}' from the passage above?",
+                    'indicator' => $indicatorName,
+                    'explanation' => "This question evaluates the student's ability in {$indicatorName}."
                 ]);
-            }
 
-            if (!$preTest->questions()->where('question_id', $question->id)->exists()) {
-                $preTest->questions()->attach($question->id);
+                // Buat 5 Pilihan Jawaban (A-E)
+                $options = ['A', 'B', 'C', 'D', 'E'];
+                $correctOptionIndex = rand(0, 4); // Acak Kunci Jawaban
+
+                foreach ($options as $idx => $opt) {
+                    $question->options()->create([
+                        'option_text' => "This is option {$opt} for question {$questionNumber}",
+                        'is_correct' => ($idx === $correctOptionIndex)
+                    ]);
+                }
             }
         }
 
         // ==========================================
-        // 4. MEMBUAT POST-TEST DAN MEMASUKKAN SOALNYA
+        // 3. GENERATE POST-TEST (30 SOAL BEDA DARI PRE-TEST)
         // ==========================================
         $postTest = Test::firstOrCreate(
-            [
-                'type' => 'post-test',
-                'module_id' => $module->id // PENAMBAHAN MODULE_ID DI SINI
-            ],
+            ['type' => 'post-test', 'module_id' => $module->id],
             [
                 'title' => 'Post-Test: ' . $module->title,
                 'duration' => 60,
@@ -135,13 +112,39 @@ class VocabularyAndTestSeeder extends Seeder
             ]
         );
 
-        // Ambil semua pertanyaan yang baru dibuat, dan hubungkan juga ke post-test
-        $allQuestions = Question::all();
-        foreach ($allQuestions as $index => $q) {
-            if (!$postTest->questions()->where('question_id', $q->id)->exists()) {
-                // Tambahkan soal ke Post-Test
-                $postTest->questions()->attach($q->id);
+        $postTest->questions()->delete();
+
+        // Looping 6 Teks Bacaan (Passages) x 5 Soal = 30 Soal
+        for ($passageIndex = 0; $passageIndex < 6; $passageIndex++) {
+            $passageNumber = $passageIndex + 1;
+
+            // Dummy Passage Text untuk Post-Test (Berbeda dengan Pre-Test)
+            $passageText = "This is Reading Passage {$passageNumber} for the Post-Test. Global warming impacts ocean currents. Researchers found that in 2025, sea levels rose faster than predicted. To synthesize this data, we must deconstruct the climate models. It shows a grim future if ignored.";
+
+            foreach ($blueprintIndicators as $indicatorIndex => $indicatorName) {
+                // Hitung Nomor Soal (1 sampai 30)
+                $questionNumber = ($passageIndex * 5) + ($indicatorIndex + 1);
+
+                $question = $postTest->questions()->create([
+                    'passage' => $passageText,
+                    'question_text' => "Question {$questionNumber}: Based on the Post-Test passage, answer this '{$indicatorName}' question.",
+                    'indicator' => $indicatorName,
+                    'explanation' => "Explanation for Post-Test question {$questionNumber} covering {$indicatorName}."
+                ]);
+
+                // Buat 5 Pilihan Jawaban (A-E)
+                $options = ['A', 'B', 'C', 'D', 'E'];
+                $correctOptionIndex = rand(0, 4);
+
+                foreach ($options as $idx => $opt) {
+                    $question->options()->create([
+                        'option_text' => "This is option {$opt} for Post-Test question {$questionNumber}",
+                        'is_correct' => ($idx === $correctOptionIndex)
+                    ]);
+                }
             }
         }
+
+        $this->command->info('✅ Seed Success: Generated exactly 30 Pre-Test and 30 Post-Test questions strictly following the Thesis Blueprint!');
     }
 }

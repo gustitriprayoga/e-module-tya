@@ -53,7 +53,7 @@
                 <div class="p-6 md:p-8 hover:bg-slate-50/50 transition-colors group">
                     <div class="flex flex-col md:flex-row justify-between items-start gap-6">
 
-                        <div class="flex-1">
+                        <div class="flex-1 w-full">
                             <div class="flex flex-wrap items-center gap-2 mb-3">
                                 <span
                                     class="px-3 py-1 bg-brand-50 text-brand-700 text-[10px] font-black uppercase tracking-widest rounded-lg border border-brand-100">
@@ -74,7 +74,7 @@
 
                             @if ($question->passage)
                                 <p
-                                    class="text-slate-400 text-sm italic mb-2 line-clamp-1 border-l-2 border-slate-200 pl-3">
+                                    class="text-slate-400 text-sm italic mb-3 line-clamp-2 border-l-2 border-slate-200 pl-3">
                                     "{{ $question->passage }}"</p>
                             @endif
 
@@ -83,7 +83,7 @@
                         </div>
 
                         <div
-                            class="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            class="flex items-center gap-2 shrink-0 md:opacity-0 group-hover:opacity-100 transition-opacity w-full md:w-auto justify-end">
                             <button wire:click="edit({{ $question->id }})"
                                 class="p-3 bg-white border border-slate-200 hover:border-brand-300 hover:text-brand-600 rounded-xl shadow-sm transition-all"
                                 title="Edit Question">
@@ -103,6 +103,7 @@
                                 </svg>
                             </button>
                         </div>
+
                     </div>
                 </div>
             @empty
@@ -133,22 +134,21 @@
             @click="modalOpen = false"></div>
         <div x-show="modalOpen" x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0 translate-y-8 scale-95"
-            class="relative bg-white rounded-[40px] shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100">
+            class="relative bg-white rounded-[40px] shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100">
 
             <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h2 class="text-2xl font-extrabold text-slate-900">
                     {{ $question_id ? 'Edit Question' : 'Add New Question' }}</h2>
                 <button wire:click="$set('isModalOpen', false)"
-                    class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="text-slate-400 hover:text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 p-2 rounded-full transition-colors"><svg
+                        class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                             d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
+                    </svg></button>
             </div>
 
-            <form wire:submit.prevent="save" class="p-8 max-h-[75vh] overflow-y-auto">
-                <div class="flex flex-col lg:flex-row gap-8">
+            <form wire:submit.prevent="save" class="p-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                <div class="flex flex-col lg:flex-row gap-10">
 
                     <div class="flex-1 space-y-6">
                         <div>
@@ -172,7 +172,7 @@
                                 <span
                                     class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md">Optional</span>
                             </div>
-                            <textarea wire:model="passage" rows="6"
+                            <textarea wire:model="passage" rows="5"
                                 class="w-full bg-amber-50/30 border border-amber-200/50 rounded-2xl py-4 px-5 outline-none focus:bg-white focus:ring-4 focus:ring-amber-500/20 font-serif text-slate-800 leading-relaxed resize-y"
                                 placeholder="Paste the long text or story here. Leave blank if this is a stand-alone question..."></textarea>
                         </div>
@@ -180,7 +180,7 @@
                         <div>
                             <label class="block text-sm font-bold text-brand-700 mb-2 ml-1">The Question</label>
                             <textarea wire:model="question_text" rows="3"
-                                class="w-full bg-brand-50/30 border border-brand-200 rounded-2xl py-4 px-5 outline-none focus:bg-white focus:ring-4 focus:ring-brand-500/20 font-medium text-slate-900 text-lg resize-y"
+                                class="w-full bg-brand-50/30 border border-brand-200 rounded-2xl py-4 px-5 outline-none focus:bg-white focus:ring-4 focus:ring-brand-500/20 font-bold text-slate-900 text-lg resize-y"
                                 placeholder="What is the main idea of paragraph 2?"></textarea>
                             @error('question_text')
                                 <span class="text-red-500 text-xs font-bold ml-1 mt-1 block">{{ $message }}</span>
@@ -188,18 +188,36 @@
                         </div>
                     </div>
 
-                    <div class="flex-1 space-y-6 lg:border-l lg:border-slate-100 lg:pl-8">
+                    <div class="flex-1 space-y-6 lg:border-l lg:border-slate-100 lg:pl-10">
                         <div>
-                            <div class="flex items-center gap-2 mb-4 ml-1">
-                                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <label class="block text-sm font-bold text-slate-700">Answer Options (A-E)</label>
+                            <div class="flex justify-between items-end mb-4 ml-1">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <label class="block text-sm font-bold text-slate-700">Answer Options (A-E)</label>
+                                </div>
+                                <span
+                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md">Fill
+                                    at least 2</span>
                             </div>
-                            <p class="text-xs text-slate-500 mb-4 ml-1">Click the circle to mark the correct answer.
-                            </p>
+
+                            @error('options_error')
+                                <div
+                                    class="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                        </path>
+                                    </svg>
+                                    {{ $message }}
+                                </div>
+                            @enderror
+                            @error('options')
+                                <span class="text-red-500 text-xs font-bold block mb-4 ml-1">{{ $message }}</span>
+                            @enderror
 
                             <div class="space-y-4">
                                 @foreach ($options as $index => $option)
@@ -213,11 +231,7 @@
                                         <div class="flex-1">
                                             <textarea wire:model="options.{{ $index }}.text" rows="2"
                                                 class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none transition-all resize-none {{ $option['is_correct'] ? 'ring-2 ring-emerald-500/20 border-emerald-500 bg-emerald-50/30 font-medium text-emerald-900' : 'focus:bg-white focus:ring-4 focus:ring-brand-500/20' }}"
-                                                placeholder="Type option {{ chr(65 + $index) }} here..."></textarea>
-                                            @error('options.' . $index . '.text')
-                                                <span
-                                                    class="text-red-500 text-[10px] font-bold block mt-1">{{ $message }}</span>
-                                            @enderror
+                                                placeholder="Type option {{ chr(65 + $index) }} here (Leave blank to remove)"></textarea>
                                         </div>
                                     </div>
                                 @endforeach
@@ -229,14 +243,14 @@
                                 (Optional)</label>
                             <textarea wire:model="explanation" rows="2"
                                 class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:bg-white focus:ring-4 focus:ring-brand-500/20 text-sm text-slate-600 resize-none"
-                                placeholder="Explain why option is correct..."></textarea>
+                                placeholder="Explain why the option is correct..."></textarea>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-8 pt-6 border-t border-slate-100 flex justify-end gap-3">
+                <div class="mt-10 pt-6 border-t border-slate-100 flex justify-end gap-3">
                     <button type="button" wire:click="$set('isModalOpen', false)"
-                        class="px-6 py-3.5 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition-colors">Cancel</button>
+                        class="px-6 py-3.5 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition-colors border border-transparent">Cancel</button>
                     <button type="submit"
                         class="bg-brand-600 hover:bg-brand-700 text-white px-10 py-3.5 rounded-2xl font-black shadow-lg shadow-brand-500/30 transition-all active:scale-95">
                         Save to Bank
@@ -253,7 +267,7 @@
             if (typeof Swal === 'undefined') return;
             Swal.fire({
                 title: 'Delete this question?',
-                text: "It will be removed from all associated tests.",
+                text: "It will be removed permanently from the bank and all tests.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#e11d48',

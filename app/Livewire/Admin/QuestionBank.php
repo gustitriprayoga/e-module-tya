@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Question;
-use App\Models\QuestionOption;
 use Livewire\Component;
 use Livewire\WithPagination;
 use RealRashid\SweetAlert\Facades\Alert;
@@ -19,7 +18,7 @@ class QuestionBank extends Component
     // Form Properties
     public $question_id, $passage, $question_text, $indicator, $explanation;
 
-    // Array untuk 5 Pilihan Jawaban (A-E)
+    // Array untuk maksimal 5 Pilihan Jawaban (A-E)
     public $options = [];
 
     public $isModalOpen = false;
@@ -77,14 +76,32 @@ class QuestionBank extends Component
 
     public function save()
     {
-        // Validasi
+        // 1. Buang opsi yang teks-nya kosong (Sehingga admin bebas membuat 3 atau 4 pilihan saja)
+        $filledOptions = array_filter($this->options, function ($opt) {
+            return trim($opt['text']) !== '';
+        });
+
+        // Re-index array agar berurutan kembali (0, 1, 2, dst)
+        $this->options = array_values($filledOptions);
+
+        // 2. Validasi Inti
         $this->validate([
             'question_text' => 'required|string',
             'indicator' => 'required|string',
-            'options.*.text' => 'required|string', // Pastikan semua opsi dari A-E terisi
+            'options' => 'required|array|min:2', // Minimal harus ada 2 pilihan jawaban
+            'options.*.text' => 'required|string',
+        ], [
+            'options.min' => 'You must provide at least 2 answer options.',
         ]);
 
-        // Simpan Soal Inti
+        // 3. Validasi Kunci Jawaban (Pastikan ada 1 yang true)
+        $hasCorrect = collect($this->options)->contains('is_correct', true);
+        if (!$hasCorrect) {
+            $this->addError('options_error', 'Please select exactly one correct answer (click the circle).');
+            return;
+        }
+
+        // 4. Simpan Soal Inti
         $question = Question::updateOrCreate(['id' => $this->question_id], [
             'passage' => $this->passage,
             'question_text' => $this->question_text,
@@ -92,10 +109,10 @@ class QuestionBank extends Component
             'explanation' => $this->explanation,
         ]);
 
-        // Hapus opsi lama jika ini adalah mode edit
+        // 5. Hapus opsi lama jika ini adalah mode edit
         $question->options()->delete();
 
-        // Simpan Opsi Jawaban (A-E)
+        // 6. Simpan Opsi Jawaban Baru
         foreach ($this->options as $option) {
             $question->options()->create([
                 'option_text' => $option['text'],
@@ -117,13 +134,13 @@ class QuestionBank extends Component
         $this->indicator = $question->indicator;
         $this->explanation = $question->explanation;
 
-        // Memuat opsi dari database (Pastikan selalu ada 5 untuk UI)
+        // Memuat opsi dari database
         $this->options = [];
         foreach ($question->options as $opt) {
-            $this->options[] = ['text' => $opt->option_text, 'is_correct' => $opt->is_correct];
+            $this->options[] = ['text' => $opt->option_text, 'is_correct' => (bool) $opt->is_correct];
         }
 
-        // Jika opsi dari DB kurang dari 5 (misal data lama), tambahkan agar genap 5 (A-E)
+        // Tambahkan slot kosong agar genap 5 slot untuk di UI
         while (count($this->options) < 5) {
             $this->options[] = ['text' => '', 'is_correct' => false];
         }
@@ -134,7 +151,7 @@ class QuestionBank extends Component
     public function deleteQuestion($id)
     {
         Question::findOrFail($id)->delete();
-        Alert::success('Deleted!', 'The question has been removed from the bank.');
+        toast('The question has been removed from the bank.', 'error');
     }
 
     private function resetInputFields()
@@ -145,7 +162,7 @@ class QuestionBank extends Component
         $this->indicator = '';
         $this->explanation = '';
 
-        // Format standar: 5 Pilihan (A, B, C, D, E) dimana A adalah default benar (bisa diubah nanti)
+        // Format standar: 5 Pilihan, A otomatis tersetting benar (Admin bisa ubah)
         $this->options = [
             ['text' => '', 'is_correct' => true],
             ['text' => '', 'is_correct' => false],

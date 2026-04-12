@@ -27,7 +27,7 @@ use App\Livewire\Student\TestScreen;
 // 1. PUBLIC ROUTES
 // ==========================================
 Route::get('/', HomePage::class)->name('home');
-Route::get('/modules', ModuleExplorer::class)->name('modules.index');
+Route::get('/modules-list', ModuleExplorer::class)->name('modules.index');
 Route::get('/leaderboard', Leaderboard::class)->name('leaderboard');
 
 
@@ -82,7 +82,7 @@ Route::middleware(['auth'])->group(function () {
         // Route::get('/read/{module_slug}/{session_id?}', \App\Livewire\Student\ModuleReader::class)->name('student.reader');
         Route::get('/read/{module_slug}', \App\Livewire\Student\ModuleReader::class)->name('student.reader');
 
-        Route::get('/modules', \App\Livewire\Student\ModuleList::class)->name('modules.index');
+        Route::get('/modules', \App\Livewire\Student\ModuleList::class)->name('modules.student.index');
         Route::get('/test/{test_id}/result', \App\Livewire\Student\TestResult::class)->name('student.test.result');
 
         // Note: Nanti rute untuk Student Module Viewer (melihat materi) bisa ditambahkan di sini

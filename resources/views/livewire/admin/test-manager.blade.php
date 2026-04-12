@@ -1,4 +1,8 @@
-<div class="relative z-10" x-data="{ modalOpen: @entangle('isModalOpen'), questionModalOpen: @entangle('isQuestionModalOpen') }">
+<div class="relative z-10" x-data="{
+    testModal: @entangle('isModalOpen'),
+    listModal: @entangle('isQuestionListOpen'),
+    formModal: @entangle('isQuestionFormOpen')
+}">
 
     <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -11,14 +15,14 @@
                 </div>
                 Test Manager
             </h1>
-            <p class="text-slate-500 mt-2">Configure Pre-tests, Post-tests, and assign questions to modules.</p>
+            <p class="text-slate-500 mt-2">Manage Pre-tests, Post-tests, and build specific questions for each.</p>
         </div>
-        <button wire:click="create"
+        <button wire:click="createTest"
             class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-6 py-3.5 rounded-2xl font-bold shadow-lg shadow-brand-500/30 transition-all active:scale-95">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
             </svg>
-            Create Test
+            Create New Test
         </button>
     </div>
 
@@ -26,20 +30,17 @@
         @forelse($tests as $test)
             <div
                 class="bg-white/80 backdrop-blur-xl border border-white rounded-[32px] p-6 md:p-8 shadow-xl shadow-slate-200/50 flex flex-col relative group hover:border-brand-300 transition-all duration-300">
-
                 <div class="absolute top-6 right-6 flex items-center gap-2">
                     <span
                         class="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200">
                         {{ str_replace('-', ' ', $test->type) }}
                     </span>
                     @if ($test->is_active)
-                        <span class="flex h-3 w-3 relative" title="Test is Live">
-                            <span
-                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                        </span>
+                        <span class="flex h-3 w-3 relative"><span
+                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span
+                                class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span>
                     @else
-                        <span class="flex h-3 w-3 relative bg-slate-300 rounded-full" title="Draft / Hidden"></span>
+                        <span class="flex h-3 w-3 relative bg-slate-300 rounded-full"></span>
                     @endif
                 </div>
 
@@ -59,7 +60,7 @@
                         <span class="text-emerald-600">{{ $test->passing_score }}</span>
                     </div>
                     <div class="flex justify-between items-center text-sm font-bold pb-2">
-                        <span class="text-slate-500">Question Bank</span>
+                        <span class="text-slate-500">Total Questions</span>
                         <span
                             class="{{ $test->questions_count > 0 ? 'text-brand-600 bg-brand-50' : 'text-slate-500 bg-slate-100' }} px-2 py-0.5 rounded-md">
                             {{ $test->questions_count }} Items
@@ -70,9 +71,9 @@
                 <div class="mt-auto flex gap-2">
                     <button wire:click="manageQuestions({{ $test->id }})"
                         class="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-700 py-2.5 rounded-xl font-bold text-sm transition-colors border border-brand-100">
-                        Assign Questions
+                        Manage Questions
                     </button>
-                    <button wire:click="edit({{ $test->id }})"
+                    <button wire:click="editTest({{ $test->id }})"
                         class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -94,32 +95,28 @@
             <div
                 class="col-span-full p-16 text-center bg-white/50 backdrop-blur-xl border border-white rounded-[32px] shadow-xl">
                 <p class="text-slate-500 font-bold mb-4">No tests configured yet.</p>
-                <button wire:click="create" class="text-brand-600 font-bold hover:underline">Create Pre-test
+                <button wire:click="createTest" class="text-brand-600 font-bold hover:underline">Create a Test
                     now</button>
             </div>
         @endforelse
     </div>
+    <div class="mt-8">{{ $tests->links() }}</div>
 
-    <div class="mt-8">
-        {{ $tests->links() }}
-    </div>
-
-    <div x-show="modalOpen" class="fixed inset-0 z-[100] flex items-center justify-center px-4" x-cloak>
-        <div x-show="modalOpen" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
-            @click="modalOpen = false"></div>
-        <div x-show="modalOpen" x-transition:enter="transition ease-out duration-300"
+    <div x-show="testModal" class="fixed inset-0 z-[100] flex items-center justify-center px-4" x-cloak>
+        <div x-show="testModal" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+            @click="testModal = false"></div>
+        <div x-show="testModal" x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0 translate-y-8 scale-95"
             class="relative bg-white rounded-[40px] shadow-2xl w-full max-w-xl overflow-hidden border border-slate-100">
             <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h2 class="text-2xl font-extrabold text-slate-900">{{ $test_id ? 'Edit Test' : 'Configure Test' }}</h2>
+                <h2 class="text-2xl font-extrabold text-slate-900">{{ $test_id ? 'Edit Test' : 'Create Test' }}</h2>
                 <button wire:click="$set('isModalOpen', false)"
                     class="text-slate-400 hover:text-slate-700 bg-white border border-slate-200 p-2 rounded-full"><svg
                         class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M6 18L18 6M6 6l12 12" stroke-width="2" />
                     </svg></button>
             </div>
-
-            <form wire:submit.prevent="save" class="p-8 space-y-6">
+            <form wire:submit.prevent="saveTest" class="p-8 space-y-6">
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-2">Target Module</label>
                     <select wire:model="module_id"
@@ -133,13 +130,11 @@
                         <span class="text-red-500 text-xs font-bold">{{ $message }}</span>
                     @enderror
                 </div>
-
                 <div class="flex gap-4">
                     <div class="flex-1">
                         <label class="block text-sm font-bold text-slate-700 mb-2">Test Title</label>
                         <input wire:model="title" type="text"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 font-bold outline-none focus:ring-4 focus:ring-brand-500/20"
-                            placeholder="e.g. Pre-test Speed Reading">
+                            class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 font-bold outline-none focus:ring-4 focus:ring-brand-500/20">
                         @error('title')
                             <span class="text-red-500 text-xs font-bold">{{ $message }}</span>
                         @enderror
@@ -153,7 +148,6 @@
                         </select>
                     </div>
                 </div>
-
                 <div class="flex gap-4">
                     <div class="flex-1">
                         <label class="block text-sm font-bold text-slate-700 mb-2">Duration (Mins)</label>
@@ -166,7 +160,6 @@
                             class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 font-bold outline-none text-center text-emerald-600">
                     </div>
                 </div>
-
                 <div class="flex items-center gap-3 pt-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                     <div class="relative inline-block w-12 align-middle select-none">
                         <input wire:model="is_active" type="checkbox" id="toggleActive"
@@ -177,11 +170,8 @@
                     <div>
                         <label for="toggleActive" class="text-sm font-bold text-slate-900 cursor-pointer">Activate /
                             Publish to Students</label>
-                        <p class="text-xs text-slate-500 mt-0.5">Students can access this test once the module is
-                            published.</p>
                     </div>
                 </div>
-
                 <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
                     <button type="submit"
                         class="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3.5 rounded-2xl font-black shadow-lg shadow-brand-500/30 w-full transition-all active:scale-95">Save
@@ -191,83 +181,198 @@
         </div>
     </div>
 
-    <div x-show="questionModalOpen" class="fixed inset-0 z-[110] flex flex-col bg-slate-50" x-cloak>
-        <div class="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center shadow-sm shrink-0">
-            <div>
-                <span class="text-[10px] font-black uppercase tracking-widest text-brand-500 block">Assign Questions to
-                    Test</span>
-                <h2 class="text-2xl font-extrabold text-slate-900">{{ $selectedTestTitle }}</h2>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="bg-slate-100 px-4 py-2 rounded-xl text-sm font-bold text-slate-600">
-                    <span class="text-brand-600">{{ count($selectedQuestions) }}</span> Selected
+    <div x-show="listModal" class="fixed inset-0 z-[110] flex items-center justify-center px-4 py-6" x-cloak>
+        <div x-show="listModal" x-transition.opacity class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm"
+            @click="listModal = false"></div>
+        <div x-show="listModal" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-8 scale-95"
+            class="relative bg-white rounded-[32px] shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+
+            <div class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center shrink-0">
+                <div>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-brand-500 block mb-1">Questions
+                        for Test:</span>
+                    <h2 class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $selectedTestTitle }}</h2>
                 </div>
-                <button wire:click="saveQuestions"
-                    class="bg-brand-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all">Save
-                    & Close</button>
-                <button wire:click="$set('isQuestionModalOpen', false)"
-                    class="p-2 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><svg
-                        class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M6 18L18 6M6 6l12 12" stroke-width="2" />
+                <div class="flex items-center gap-3">
+                    <button wire:click="createQuestion"
+                        class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg> Add Question
+                    </button>
+                    <button wire:click="$set('isQuestionListOpen', false)"
+                        class="p-2.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors"><svg
+                            class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" />
+                        </svg></button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-8 bg-slate-50/50 custom-scrollbar">
+                <div class="space-y-4">
+                    @forelse($testQuestions as $index => $q)
+                        <div
+                            class="flex items-start gap-4 p-6 bg-white border border-slate-200 rounded-2xl hover:border-brand-300 hover:shadow-md transition-all">
+                            <div
+                                class="shrink-0 w-8 h-8 bg-slate-100 text-slate-500 font-black rounded-lg flex items-center justify-center">
+                                {{ $index + 1 }}</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex flex-wrap items-center gap-2 mb-2">
+                                    <span
+                                        class="px-2 py-0.5 bg-brand-50 text-brand-600 text-[10px] font-black uppercase rounded tracking-widest border border-brand-100">{{ $q->indicator }}</span>
+                                </div>
+                                @if ($q->passage)
+                                    <p
+                                        class="text-slate-400 text-sm italic mb-3 line-clamp-2 border-l-2 border-slate-200 pl-3">
+                                        "{{ $q->passage }}"</p>
+                                @endif
+                                <p class="font-bold text-slate-800 text-lg leading-relaxed">{{ $q->question_text }}
+                                </p>
+                            </div>
+                            <div class="flex flex-col gap-2 shrink-0">
+                                <button wire:click="editQuestion({{ $q->id }})"
+                                    class="p-2 bg-slate-50 hover:bg-brand-50 text-slate-500 hover:text-brand-600 rounded-lg transition-colors"><svg
+                                        class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                        </path>
+                                    </svg></button>
+                                <button onclick="confirmDeleteQuestion({{ $q->id }})"
+                                    class="p-2 bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-lg transition-colors"><svg
+                                        class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                        </path>
+                                    </svg></button>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-16 bg-white border-2 border-dashed border-slate-200 rounded-[24px]">
+                            <div
+                                class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg></div>
+                            <p class="text-slate-600 font-bold">This test has no questions yet.</p>
+                            <p class="text-slate-400 text-sm mt-1">Click "Add Question" to start building.</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+            <div class="bg-white border-t border-slate-200 p-4 text-center shrink-0">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Total: <span
+                        class="text-brand-600">{{ count($testQuestions) }}</span> Questions in this Test</p>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="formModal" class="fixed inset-0 z-[120] flex items-center justify-center px-4" x-cloak>
+        <div x-show="formModal" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+        <div x-show="formModal" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-8 scale-95"
+            class="relative bg-white rounded-[40px] shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100">
+
+            <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h2 class="text-xl font-extrabold text-slate-900">
+                    {{ $question_id ? 'Edit Question' : 'Add New Question' }}</h2>
+                <button wire:click="backToQuestionList"
+                    class="text-slate-400 hover:text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 p-2 rounded-full transition-colors"><svg
+                        class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M6 18L18 6M6 6l12 12"></path>
                     </svg></button>
             </div>
-        </div>
 
-        <div class="bg-white border-b border-slate-200 p-4 px-8 flex gap-4 shrink-0 shadow-sm">
-            <input wire:model.live.debounce.300ms="questionSearch" type="text"
-                placeholder="Search specific questions..."
-                class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl py-3 px-5 outline-none focus:ring-4 focus:ring-brand-500/20 transition-all font-medium">
-            <select wire:model.live="indicatorFilter"
-                class="bg-slate-50 border border-slate-200 rounded-2xl px-5 outline-none font-bold text-slate-600 focus:ring-4 focus:ring-brand-500/20 transition-all">
-                <option value="">All Indicators</option>
-                @foreach ($indicators as $ind)
-                    <option value="{{ $ind }}">{{ $ind }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        <div class="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
-            <div class="space-y-4">
-                @forelse($availableQuestions as $q)
-                    <label
-                        class="flex items-start gap-4 p-6 bg-white border border-slate-200 rounded-3xl cursor-pointer hover:border-brand-300 hover:shadow-lg transition-all {{ in_array($q->id, $selectedQuestions) ? 'ring-2 ring-brand-500/20 border-brand-500 bg-brand-50/10' : '' }}">
-                        <div class="mt-1">
-                            <input type="checkbox" wire:model.live="selectedQuestions" value="{{ $q->id }}"
-                                class="w-6 h-6 text-brand-600 rounded-lg border-slate-300 focus:ring-brand-500">
+            <form wire:submit.prevent="saveQuestion" class="p-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                <div class="flex flex-col lg:flex-row gap-10">
+                    <div class="flex-1 space-y-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2 ml-1">Reading Indicator</label>
+                            <select wire:model="indicator"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 outline-none focus:bg-white focus:ring-4 focus:ring-brand-500/20 font-bold text-slate-800 appearance-none">
+                                <option value="">-- Select Indicator --</option>
+                                @foreach ($indicators as $ind)
+                                    <option value="{{ $ind }}">{{ $ind }}</option>
+                                @endforeach
+                            </select>
+                            @error('indicator')
+                                <span class="text-red-500 text-xs font-bold ml-1 mt-1 block">{{ $message }}</span>
+                            @enderror
                         </div>
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span
-                                    class="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase rounded-lg tracking-widest">{{ $q->indicator }}</span>
-                                @if ($q->passage)
-                                    <span
-                                        class="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded-lg tracking-widest flex items-center gap-1">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                            </path>
-                                        </svg>
-                                        Passage Attached
-                                    </span>
-                                @endif
+                        <div>
+                            <div class="flex justify-between items-end mb-2 ml-1"><label
+                                    class="block text-sm font-bold text-slate-700">Reading Passage</label><span
+                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md">Optional</span>
                             </div>
-                            <p class="font-bold text-slate-800 text-lg leading-relaxed">{{ $q->question_text }}</p>
+                            <textarea wire:model="passage" rows="5"
+                                class="w-full bg-amber-50/30 border border-amber-200/50 rounded-2xl py-4 px-5 outline-none focus:bg-white focus:ring-4 focus:ring-amber-500/20 font-serif text-slate-800 resize-y"
+                                placeholder="Paste the long text here..."></textarea>
                         </div>
-                    </label>
-                @empty
-                    <div class="text-center py-20 bg-white border-2 border-dashed border-slate-200 rounded-[32px]">
-                        <div
-                            class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg></div>
-                        <p class="text-slate-600 font-bold text-lg">No questions match your filter.</p>
-                        <p class="text-slate-400 text-sm mt-1">Try adjusting your search or indicator selection.</p>
+                        <div>
+                            <label class="block text-sm font-bold text-brand-700 mb-2 ml-1">The Question</label>
+                            <textarea wire:model="question_text" rows="3"
+                                class="w-full bg-brand-50/30 border border-brand-200 rounded-2xl py-4 px-5 outline-none focus:bg-white focus:ring-4 focus:ring-brand-500/20 font-bold text-slate-900 text-lg resize-y"
+                                placeholder="What is the main idea...?"></textarea>
+                            @error('question_text')
+                                <span class="text-red-500 text-xs font-bold ml-1 mt-1 block">{{ $message }}</span>
+                            @enderror
+                        </div>
                     </div>
-                @endforelse
-            </div>
+
+                    <div class="flex-1 space-y-6 lg:border-l lg:border-slate-100 lg:pl-10">
+                        <div>
+                            <div class="flex justify-between items-end mb-4 ml-1">
+                                <label class="block text-sm font-bold text-slate-700">Answer Options (A-E)</label>
+                                <span
+                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md">Fill
+                                    at least 2</span>
+                            </div>
+                            @error('options_error')
+                                <div class="mb-4 bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-bold">
+                                    {{ $message }}</div>
+                            @enderror
+                            @error('options')
+                                <span class="text-red-500 text-xs font-bold block mb-4 ml-1">{{ $message }}</span>
+                            @enderror
+
+                            <div class="space-y-4">
+                                @foreach ($options as $index => $option)
+                                    <div class="flex items-start gap-3">
+                                        <button type="button" wire:click="setCorrectOption({{ $index }})"
+                                            class="mt-2 shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 {{ $option['is_correct'] ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/30 scale-110' : 'border-slate-300 text-slate-400 hover:border-emerald-400' }}"
+                                            title="Set as correct answer">
+                                            <span class="text-xs font-black">{{ chr(65 + $index) }}</span>
+                                        </button>
+                                        <div class="flex-1">
+                                            <textarea wire:model="options.{{ $index }}.text" rows="2"
+                                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none transition-all resize-none {{ $option['is_correct'] ? 'ring-2 ring-emerald-500/20 border-emerald-500 bg-emerald-50/30 font-medium text-emerald-900' : 'focus:bg-white focus:ring-4 focus:ring-brand-500/20' }}"
+                                                placeholder="Type option {{ chr(65 + $index) }} here (Leave blank to remove)"></textarea>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-slate-100">
+                            <label class="block text-sm font-bold text-slate-700 mb-2 ml-1">Explanation
+                                (Optional)</label>
+                            <textarea wire:model="explanation" rows="2"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:bg-white focus:ring-4 focus:ring-brand-500/20 text-sm text-slate-600 resize-none"
+                                placeholder="Explain why the option is correct..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 pt-6 border-t border-slate-100 flex justify-end gap-3">
+                    <button type="button" wire:click="backToQuestionList"
+                        class="px-6 py-3.5 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition-colors">Cancel</button>
+                    <button type="submit"
+                        class="bg-brand-600 hover:bg-brand-700 text-white px-10 py-3.5 rounded-2xl font-black shadow-lg shadow-brand-500/30 transition-all active:scale-95">Save
+                        to Test</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -285,6 +390,19 @@
             right: 24px;
             border-color: #e2e8f0;
         }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
     </style>
 </div>
 
@@ -294,7 +412,7 @@
             if (typeof Swal === 'undefined') return;
             Swal.fire({
                 title: 'Delete Test?',
-                text: "This will remove the test and its settings. The questions in the bank will NOT be deleted.",
+                text: "This will permanently remove the test and ALL questions inside it.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#e11d48',
@@ -306,6 +424,24 @@
                 }
             }).then((result) => {
                 if (result.isConfirmed) $wire.deleteTest(id);
+            });
+        }
+
+        window.confirmDeleteQuestion = function(id) {
+            if (typeof Swal === 'undefined') return;
+            Swal.fire({
+                title: 'Delete Question?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                confirmButtonText: 'Yes',
+                customClass: {
+                    popup: 'rounded-[32px] shadow-2xl border border-slate-100',
+                    confirmButton: 'rounded-xl px-6 py-3 font-bold',
+                    cancelButton: 'rounded-xl px-6 py-3 font-bold'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) $wire.deleteQuestion(id);
             });
         }
     </script>

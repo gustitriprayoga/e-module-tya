@@ -42,7 +42,7 @@ class Login extends Component
                 Auth::attempt(['email' => $this->username, 'password' => $this->password])
             ) {
 
-                Alert::success('Success', 'Welcome back to PahlawanHub! 🎉');
+                Alert::success('Success', 'Welcome back to LitFlow! 🎉');
                 return $this->redirectBasedOnRole(Auth::user());
             }
 
@@ -117,7 +117,7 @@ class Login extends Component
             Auth::login($user);
         });
 
-        Alert::success('Login Success', 'Welcome to PahlawanHub! 🎉');
+        Alert::success('Login Success', 'Welcome to LitFlow! 🎉');
         return $this->redirectBasedOnRole(Auth::user());
     }
 
