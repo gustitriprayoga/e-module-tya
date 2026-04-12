@@ -22,7 +22,7 @@
                     </span>
                     <input wire:model="username" type="text" required
                         class="w-full bg-white/60 border border-slate-300 rounded-2xl py-3.5 pl-11 pr-4 focus:bg-white focus:ring-4 focus:ring-brand-500/20 focus:border-brand-500 transition-all outline-none text-slate-900 font-medium placeholder-slate-400"
-                        placeholder="e.g. 1855201011">
+                        placeholder="Enter Your Email">
                 </div>
                 @error('username')
                     <span class="text-red-500 text-xs mt-1 ml-1 font-semibold">{{ $message }}</span>
