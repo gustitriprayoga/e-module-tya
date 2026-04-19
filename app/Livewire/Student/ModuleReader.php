@@ -144,82 +144,66 @@ class ModuleReader extends Component
         return redirect()->route('modules.index');
     }
 
-    // --- ALGORITMA VOCAB HIGHLIGHTER YANG SUPER CEPAT ---
+    // --- ALGORITMA VOCAB HIGHLIGHTER (TOKENIZER SUPER CEPAT) ---
     public function renderHighlightedText($text)
     {
         if (empty($text)) return '';
 
-        $vocabData = \Illuminate\Support\Facades\Cache::remember('vocab_dict_v2', 3600, function () {
+        // Ambil dictionary sebagai array Key-Value (Sangat ringan di memori)
+        $dict = \Illuminate\Support\Facades\Cache::remember('vocab_dict_v4', 3600, function () {
             $vocabs = \App\Models\Vocabulary::select('word', 'definition', 'context_sentence', 'level', 'category')->get();
-            if ($vocabs->isEmpty()) return null;
+            if ($vocabs->isEmpty()) return [];
 
-            $dict = [];
+            $d = [];
             foreach ($vocabs as $v) {
-                $dict[strtolower($v->word)] = $v->toArray();
+                $d[strtolower($v->word)] = $v->toArray();
             }
-
-            // Urutkan dari kata terpanjang ke terpendek (multi-word phrases dulu)
-            uksort($dict, fn($a, $b) => strlen($b) - strlen($a));
-
-            return ['dict' => $dict];
+            return $d;
         });
 
-        if (!$vocabData) return $text;
+        if (empty($dict)) return $text;
 
-        $dict = $vocabData['dict'];
-
-        // Pisahkan tag HTML dari teks biasa
+        // Pisahkan tag HTML dari Teks Biasa
         $chunks = preg_split('/(<[^>]+>)/', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
         $result = '';
 
         foreach ($chunks as $chunk) {
-            if (empty($chunk)) continue;
+            if ($chunk === '' || $chunk === null) continue;
 
-            // Lewati tag HTML
+            // Jika ini tag HTML (misal: <p>, <b>), langsung lewati tanpa diproses
             if (str_starts_with($chunk, '<') && str_ends_with($chunk, '>')) {
                 $result .= $chunk;
                 continue;
             }
 
-            // Proses per chunk dengan BATCH regex (max 300 kata per pattern)
-            $result .= $this->highlightChunk($chunk, $dict);
-        }
+            // Memecah teks menjadi kata per kata (mempertahankan spasi & tanda baca)
+            $tokens = preg_split('/(\W+)/u', $chunk, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 
-        return $result;
-    }
+            foreach ($tokens as $token) {
+                // Cek apakah token ini adalah kata (huruf) atau hanya tanda baca/spasi
+                if (preg_match('/^\w+$/u', $token)) {
+                    $lowerWord = strtolower($token);
 
-    private function highlightChunk(string $chunk, array $dict): string
-    {
-        $keys = array_keys($dict);
-        $batchSize = 300; // Batas aman agar regex tidak meledak
-        $batches = array_chunk($keys, $batchSize);
-
-        foreach ($batches as $batch) {
-            $escapedKeys = array_map(fn($k) => preg_quote($k, '/'), $batch);
-            $pattern = '/\b(' . implode('|', $escapedKeys) . ')\b/iu';
-
-            $chunk = preg_replace_callback($pattern, function ($matches) use ($dict) {
-                $lowerWord = mb_strtolower($matches[1]);
-                if (!isset($dict[$lowerWord])) return $matches[1];
-
-                $v = $dict[$lowerWord];
-                return '<span class="vocab-word"'
-                    . ' data-word="'       . htmlspecialchars($v['word'],             ENT_QUOTES) . '"'
-                    . ' data-definition="' . htmlspecialchars($v['definition'],       ENT_QUOTES) . '"'
-                    . ' data-example="'    . htmlspecialchars($v['context_sentence'] ?? '', ENT_QUOTES) . '"'
-                    . ' data-level="'      . htmlspecialchars($v['level']    ?? 'Vocab',   ENT_QUOTES) . '"'
-                    . ' data-category="'   . htmlspecialchars($v['category'] ?? 'General', ENT_QUOTES) . '">'
-                    . $matches[1]
-                    . '</span>';
-            }, $chunk);
-
-            // Jika preg_replace_callback gagal, biarkan chunk tidak berubah
-            if ($chunk === null) {
-                $chunk = $matches[0] ?? '';
+                    // Cek di Dictionary Array
+                    if (isset($dict[$lowerWord])) {
+                        $v = $dict[$lowerWord];
+                        $result .= '<span class="vocab-word" ' .
+                            'data-word="' . htmlspecialchars($v['word'], ENT_QUOTES) . '" ' .
+                            'data-definition="' . htmlspecialchars($v['definition'], ENT_QUOTES) . '" ' .
+                            'data-example="' . htmlspecialchars($v['context_sentence'] ?? '', ENT_QUOTES) . '" ' .
+                            'data-level="' . htmlspecialchars($v['level'] ?? 'Vocab', ENT_QUOTES) . '" ' .
+                            'data-category="' . htmlspecialchars($v['category'] ?? 'General', ENT_QUOTES) . '">' .
+                            $token . '</span>';
+                    } else {
+                        $result .= $token; // Bukan kosa kata target
+                    }
+                } else {
+                    $result .= $token; // Tanda baca / Spasi
+                }
             }
         }
 
-        return $chunk;
+        return $result;
     }
 
     public function render()

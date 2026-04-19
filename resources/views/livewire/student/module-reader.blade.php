@@ -109,7 +109,8 @@
                                             Check</span>
                                     </div>
                                     <p class="text-lg sm:text-xl font-bold text-slate-900 mb-6 leading-snug">
-                                        {{ $block['content']['text'] }}</p>
+                                        {{ $block['content']['text'] }}
+                                    </p>
 
                                     <div class="space-y-3">
                                         @foreach ($block['content']['options'] as $index => $opt)
@@ -143,16 +144,14 @@
                                                     <path fill-rule="evenodd"
                                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                                         clip-rule="evenodd" />
-                                                </svg>
-                                                Correct! Well done.
+                                                </svg> Correct! Well done.
                                             @else
                                                 <svg class="w-5 h-5 shrink-0 text-red-500" fill="currentColor"
                                                     viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd"
                                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
                                                         clip-rule="evenodd" />
-                                                </svg>
-                                                Not quite. Try reviewing the text above.
+                                                </svg> Not quite. Try reviewing the text above.
                                             @endif
                                         </div>
                                     @endif
@@ -165,52 +164,77 @@
                         @endforelse
                     </div>
 
+                    {{-- LOGIKA VALIDASI: Cek Apakah Semua Kuis Di Halaman Ini Sudah Dijawab --}}
+                    @php
+                        $unansweredCount = 0;
+                        foreach ($contentBlocks as $block) {
+                            if ($block['type'] === 'quiz' && !isset($userAnswers[$block['id']])) {
+                                $unansweredCount++;
+                            }
+                        }
+                        $canProceed = $unansweredCount === 0;
+                    @endphp
+
                     {{-- NAVIGASI BUTTONS --}}
-                    <div class="mt-16 pt-6 border-t border-slate-200 flex flex-row justify-between items-center gap-4">
-                        @if ($currentPageIndex > 0)
-                            <button @click="goPrev()"
-                                class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3.5 rounded-2xl font-bold text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 active:scale-[0.98] transition-all">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                        d="M15 19l-7-7 7-7" />
-                                </svg>
-                                Prev
-                            </button>
-                        @else
-                            <div class="flex-1 sm:flex-none"></div>
+                    <div class="mt-16 pt-6 border-t border-slate-200">
+
+                        {{-- Peringatan jika belum jawab --}}
+                        @if (!$canProceed)
+                            <div class="text-center text-red-500 font-bold text-sm mb-4 animate-pulse">
+                                * Please answer all Knowledge Checks above to proceed.
+                            </div>
                         @endif
 
-                        @if ($currentPageIndex < $totalPages - 1)
-                            <button @click="goNext()"
-                                class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 sm:px-10 py-3.5 bg-slate-900 text-white rounded-2xl font-bold text-sm shadow-lg shadow-slate-900/20 hover:bg-black active:scale-[0.98] transition-all">
-                                Next
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                        d="M9 5l7 7-7 7" />
-                                </svg>
-                            </button>
-                        @else
-                            <button @click="finish()"
-                                class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 sm:px-10 py-3.5 bg-brand-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-brand-500/30 hover:bg-brand-700 active:scale-[0.98] transition-all">
-                                <span wire:loading.remove wire:target="finishModule" class="flex items-center gap-2">
-                                    Finish <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
+                        <div class="flex flex-row justify-between items-center gap-4">
+                            @if ($currentPageIndex > 0)
+                                <button @click="goPrev()"
+                                    class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3.5 rounded-2xl font-bold text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 active:scale-[0.98] transition-all">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                            d="M5 13l4 4L19 7" />
+                                            d="M15 19l-7-7 7-7" />
                                     </svg>
-                                </span>
-                                <span wire:loading wire:target="finishModule" class="flex items-center gap-2">
-                                    <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10"
-                                            stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                        </path>
+                                    Prev
+                                </button>
+                            @else
+                                <div class="flex-1 sm:flex-none"></div>
+                            @endif
+
+                            @if ($currentPageIndex < $totalPages - 1)
+                                <button @click="goNext()" @disabled(!$canProceed)
+                                    class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 sm:px-10 py-3.5 rounded-2xl font-bold text-sm shadow-lg transition-all
+                                    {{ $canProceed ? 'bg-slate-900 text-white hover:bg-black active:scale-[0.98] shadow-slate-900/20' : 'bg-slate-300 text-slate-500 cursor-not-allowed' }}">
+                                    Next
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M9 5l7 7-7 7" />
                                     </svg>
-                                    Processing...
-                                </span>
-                            </button>
-                        @endif
+                                </button>
+                            @else
+                                <button @click="finish()" @disabled(!$canProceed)
+                                    class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 sm:px-10 py-3.5 rounded-2xl font-bold text-sm shadow-lg transition-all
+                                    {{ $canProceed ? 'bg-brand-600 text-white hover:bg-brand-700 active:scale-[0.98] shadow-brand-500/30' : 'bg-slate-300 text-slate-500 cursor-not-allowed' }}">
+                                    <span wire:loading.remove wire:target="finishModule"
+                                        class="flex items-center gap-2">
+                                        Finish <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                                d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                    <span wire:loading wire:target="finishModule" class="flex items-center gap-2">
+                                        <svg class="animate-spin w-4 h-4 text-white" fill="none"
+                                            viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10"
+                                                stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                            </path>
+                                        </svg>
+                                        Processing...
+                                    </span>
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 @endif
             </div>
@@ -306,13 +330,11 @@
         const isMobile = window.innerWidth < 640;
 
         if (isMobile) {
-            // HP: Muncul melayang di atas Navigation Bar Bawah
             tooltip.style.bottom = '100px';
             tooltip.style.top = 'auto';
             tooltip.style.left = '50%';
             tooltip.style.transform = 'translateX(-50%)';
         } else {
-            // Desktop: Muncul di atas kosa kata yang diklik
             tooltip.style.transform = 'none';
             const tw = tooltip.offsetWidth;
             let left = rect.left + rect.width / 2 - tw / 2 + window.scrollX;
