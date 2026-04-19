@@ -7,7 +7,7 @@
             <p class="text-lg text-slate-500">Here is a quick overview of your reading progress.</p>
         </div>
         <div>
-            <a href="{{ route('modules.index') }}"
+            <a href="{{ route('modules.student.index') }}"
                 class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-8 py-3.5 rounded-2xl font-bold shadow-lg shadow-brand-500/30 transition-all hover:-translate-y-1">
                 Continue Learning
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
