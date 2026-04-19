@@ -149,7 +149,7 @@ class ModuleReader extends Component
     {
         if (empty($text)) return '';
 
-        $vocabData = \Illuminate\Support\Facades\Cache::remember('vocab_regex_data_v1', 3600, function () {
+        $vocabData = \Illuminate\Support\Facades\Cache::remember('vocab_dict_v2', 3600, function () {
             $vocabs = \App\Models\Vocabulary::select('word', 'definition', 'context_sentence', 'level', 'category')->get();
             if ($vocabs->isEmpty()) return null;
 
@@ -158,54 +158,68 @@ class ModuleReader extends Component
                 $dict[strtolower($v->word)] = $v->toArray();
             }
 
-            $keys = array_keys($dict);
-            usort($keys, function ($a, $b) {
-                return strlen($b) - strlen($a);
-            });
-            $escapedKeys = array_map(function ($key) {
-                return preg_quote($key, '/');
-            }, $keys);
+            // Urutkan dari kata terpanjang ke terpendek (multi-word phrases dulu)
+            uksort($dict, fn($a, $b) => strlen($b) - strlen($a));
 
-            $pattern = '/\b(' . implode('|', $escapedKeys) . ')\b/i';
-            return ['dict' => $dict, 'pattern' => $pattern];
+            return ['dict' => $dict];
         });
 
         if (!$vocabData) return $text;
 
         $dict = $vocabData['dict'];
-        $pattern = $vocabData['pattern'];
 
+        // Pisahkan tag HTML dari teks biasa
         $chunks = preg_split('/(<[^>]+>)/', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
         $result = '';
 
         foreach ($chunks as $chunk) {
             if (empty($chunk)) continue;
+
+            // Lewati tag HTML
             if (str_starts_with($chunk, '<') && str_ends_with($chunk, '>')) {
                 $result .= $chunk;
                 continue;
             }
 
-            $processedChunk = preg_replace_callback($pattern, function ($matches) use ($dict) {
-                $matchedWord = $matches[1];
-                $lowerWord = strtolower($matchedWord);
-
-                if (isset($dict[$lowerWord])) {
-                    $v = $dict[$lowerWord];
-                    return '<span class="vocab-word" ' .
-                        'data-word="' . htmlspecialchars($v['word'], ENT_QUOTES) . '" ' .
-                        'data-definition="' . htmlspecialchars($v['definition'], ENT_QUOTES) . '" ' .
-                        'data-example="' . htmlspecialchars($v['context_sentence'] ?? '', ENT_QUOTES) . '" ' .
-                        'data-level="' . htmlspecialchars($v['level'] ?? 'Vocab', ENT_QUOTES) . '" ' .
-                        'data-category="' . htmlspecialchars($v['category'] ?? 'General', ENT_QUOTES) . '">' .
-                        $matchedWord . '</span>';
-                }
-                return $matchedWord;
-            }, $chunk);
-
-            $result .= $processedChunk;
+            // Proses per chunk dengan BATCH regex (max 300 kata per pattern)
+            $result .= $this->highlightChunk($chunk, $dict);
         }
 
         return $result;
+    }
+
+    private function highlightChunk(string $chunk, array $dict): string
+    {
+        $keys = array_keys($dict);
+        $batchSize = 300; // Batas aman agar regex tidak meledak
+        $batches = array_chunk($keys, $batchSize);
+
+        foreach ($batches as $batch) {
+            $escapedKeys = array_map(fn($k) => preg_quote($k, '/'), $batch);
+            $pattern = '/\b(' . implode('|', $escapedKeys) . ')\b/iu';
+
+            $chunk = preg_replace_callback($pattern, function ($matches) use ($dict) {
+                $lowerWord = mb_strtolower($matches[1]);
+                if (!isset($dict[$lowerWord])) return $matches[1];
+
+                $v = $dict[$lowerWord];
+                return '<span class="vocab-word"'
+                    . ' data-word="'       . htmlspecialchars($v['word'],             ENT_QUOTES) . '"'
+                    . ' data-definition="' . htmlspecialchars($v['definition'],       ENT_QUOTES) . '"'
+                    . ' data-example="'    . htmlspecialchars($v['context_sentence'] ?? '', ENT_QUOTES) . '"'
+                    . ' data-level="'      . htmlspecialchars($v['level']    ?? 'Vocab',   ENT_QUOTES) . '"'
+                    . ' data-category="'   . htmlspecialchars($v['category'] ?? 'General', ENT_QUOTES) . '">'
+                    . $matches[1]
+                    . '</span>';
+            }, $chunk);
+
+            // Jika preg_replace_callback gagal, biarkan chunk tidak berubah
+            if ($chunk === null) {
+                $chunk = $matches[0] ?? '';
+            }
+        }
+
+        return $chunk;
     }
 
     public function render()
