@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             RoleAndUserSeeder::class,
             ModuleAndPageSeeder::class,
             VocabularyAndTestSeeder::class,
+            LeaderboardSeeder::class,
         ]);
     }
 }

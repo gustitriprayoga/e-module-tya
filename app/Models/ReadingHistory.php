@@ -8,8 +8,9 @@ class ReadingHistory extends Model
 {
     protected $fillable = [
         'user_id',
+        'module_id',
         'block_id',
-        'duration_seconds',
+        'reading_time_seconds',
         'wpm_result',
         'accuracy_score'
     ];

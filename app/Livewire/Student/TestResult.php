@@ -119,6 +119,6 @@ class TestResult extends Component
     public function render()
     {
         return view('livewire.student.test-result')
-            ->layout('components.layouts.dashboard', ['title' => 'Test Results & Analytics']);
+            ->layout('components.layouts.reader', ['title' => 'Test Results & Analytics']);
     }
 }

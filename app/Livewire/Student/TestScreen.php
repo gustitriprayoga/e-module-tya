@@ -89,6 +89,6 @@ class TestScreen extends Component
     public function render()
     {
         return view('livewire.student.test-screen')
-            ->layout('components.layouts.app', ['title' => $this->test->title ?? 'Test']);
+            ->layout('components.layouts.reader', ['title' => $this->test->title ?? 'Test']);
     }
 }
