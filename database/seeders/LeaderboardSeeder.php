@@ -25,7 +25,7 @@ class LeaderboardSeeder extends Seeder
 
         // 2. Daftar nama Juara untuk simulasi Podium
         $topPerformers = [
-            ['name' => 'Dr. Gusti Tri', 'wpm' => 312, 'nim' => '1855201901'], // NIM unik
+            ['name' => 'GTP', 'wpm' => 312, 'nim' => '1855201901'], // NIM unik
             ['name' => 'Mutiara Sophia', 'wpm' => 285, 'nim' => '1855201902'],
             ['name' => 'Indriyani S.', 'wpm' => 260, 'nim' => '1855201903'],
         ];

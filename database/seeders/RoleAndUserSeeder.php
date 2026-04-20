@@ -18,46 +18,46 @@ class RoleAndUserSeeder extends Seeder
         }
 
         // 2. Buat User Super Admin (Peneliti)
-        $admin = User::firstOrCreate(
-            ['nim_nip' => '2288203021'], // NIM Mutiara
-            [
-                'name' => 'Mutiara Sophia Ningsih',
-                'email' => 'mutiara@universitaspahlawan.ac.id',
-                'password' => Hash::make('password123'),
-            ]
-        );
-        $admin->assignRole('admin');
+        // $admin = User::firstOrCreate(
+        //     ['nim_nip' => '2288203021'], // NIM Mutiara
+        //     [
+        //         'name' => 'Mutiara Sophia Ningsih',
+        //         'email' => 'mutiara@universitaspahlawan.ac.id',
+        //         'password' => Hash::make('password123'),
+        //     ]
+        // );
+        // $admin->assignRole('admin');
 
-        // 3. Buat User Dosen
-        $dosen = User::firstOrCreate(
-            ['nim_nip' => '096542140'], // NIP Dr. Putri Asilestari
-            [
-                'name' => 'Dr. Putri Asilestari, M.Pd.',
-                'email' => 'putri.asilestari@universitaspahlawan.ac.id',
-                'password' => Hash::make('password123'),
-            ]
-        );
-        $dosen->assignRole('dosen');
+        // // 3. Buat User Dosen
+        // $dosen = User::firstOrCreate(
+        //     ['nim_nip' => '096542140'], // NIP Dr. Putri Asilestari
+        //     [
+        //         'name' => 'Dr. Putri Asilestari, M.Pd.',
+        //         'email' => 'putri.asilestari@universitaspahlawan.ac.id',
+        //         'password' => Hash::make('password123'),
+        //     ]
+        // );
+        // $dosen->assignRole('dosen');
 
-        // 4. Buat User Mahasiswa Sampel (Untuk Leaderboard)
-        $student1 = User::firstOrCreate(
-            ['nim_nip' => '1855201011'],
-            [
-                'name' => 'Dr. Gusti Tri',
-                'email' => 'gusti@universitaspahlawan.ac.id',
-                'password' => Hash::make('password123'),
-            ]
-        );
-        $student1->assignRole('mahasiswa');
+        // // 4. Buat User Mahasiswa Sampel (Untuk Leaderboard)
+        // $student1 = User::firstOrCreate(
+        //     ['nim_nip' => '1855201011'],
+        //     [
+        //         'name' => 'Dr. Gusti Tri',
+        //         'email' => 'gusti@universitaspahlawan.ac.id',
+        //         'password' => Hash::make('password123'),
+        //     ]
+        // );
+        // $student1->assignRole('mahasiswa');
 
-        $student2 = User::firstOrCreate(
-            ['nim_nip' => '1855201012'],
-            [
-                'name' => 'Indriyani S.',
-                'email' => 'indriyani@universitaspahlawan.ac.id',
-                'password' => Hash::make('password123'),
-            ]
-        );
-        $student2->assignRole('mahasiswa');
+        // $student2 = User::firstOrCreate(
+        //     ['nim_nip' => '1855201012'],
+        //     [
+        //         'name' => 'Indriyani S.',
+        //         'email' => 'indriyani@universitaspahlawan.ac.id',
+        //         'password' => Hash::make('password123'),
+        //     ]
+        // );
+        // $student2->assignRole('mahasiswa');
     }
 }
