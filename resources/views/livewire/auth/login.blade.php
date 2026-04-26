@@ -66,15 +66,6 @@
                 </span>
             </button>
         </form>
-
-        <div class="mt-8 pt-6 border-t border-slate-200 text-center">
-            <p class="text-[11px] text-slate-500 uppercase tracking-widest font-extrabold mb-3">Campus Integrated Login
-            </p>
-            <div class="flex justify-center">
-                <img src="/img/up-logo.png" alt="Universitas Pahlawan"
-                    class="h-10 opacity-75 hover:opacity-100 transition-opacity">
-            </div>
-        </div>
     </div>
 
     <p class="text-center mt-8">
