@@ -71,10 +71,12 @@ class TestScreen extends Component
 
         $score = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
 
+        // --- BAGIAN INI YANG DIUBAH ---
         TestResult::create([
             'user_id' => Auth::id(),
             'test_id' => $this->test->id,
             'score' => $score,
+            'answers' => $this->answers, // SIMPAN JAWABAN KE DATABASE
             'completed_at' => now(),
         ]);
 
@@ -82,7 +84,6 @@ class TestScreen extends Component
 
         toast('Test submitted successfully!', 'success');
 
-        // PENTING: Arahkan ke halaman analitik (Test Result)
         return redirect()->route('student.test.result', $this->test->id);
     }
 

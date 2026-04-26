@@ -9,22 +9,28 @@ class TestResult extends Model
 {
     use HasFactory;
 
+    // Tambahkan 'answers' ke fillable agar bisa disimpan
     protected $fillable = [
         'user_id',
         'test_id',
         'score',
+        'answers',
         'completed_at',
     ];
 
-    // Relasi agar kita tahu nilai ini milik siapa
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
+    // Tambahkan casts agar string JSON otomatis jadi array di Laravel
+    protected $casts = [
+        'answers' => 'array',
+        'completed_at' => 'datetime',
+    ];
 
-    // Relasi agar kita tahu ini nilai dari ujian apa
     public function test()
     {
         return $this->belongsTo(Test::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

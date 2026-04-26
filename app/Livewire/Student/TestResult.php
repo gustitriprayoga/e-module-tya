@@ -15,26 +15,28 @@ class TestResult extends Component
     // --- Properti Untuk Fitur Download PDF ---
     public $resultId;
 
-    public $preTestScore = 0;
+    public $preTestScore  = 0;
     public $postTestScore = 0;
 
     // --- Data Ujian Saat Ini ---
-    public $testQuestionsTotal = 0;
+    public $testQuestionsTotal   = 0;
     public $testQuestionsCorrect = 0;
 
     // --- Data Analitik Membaca (Speed Reading) ---
-    public $readingWpm = 0;
-    public $readingTime = 0;
+    public $readingWpm   = 0;
+    public $readingTime  = 0;
     public $readingWords = 0;
+
+    // --- In-Module Quiz ---
     public $moduleQuizCorrect = 0;
-    public $moduleQuizTotal = 0;
+    public $moduleQuizTotal   = 0;
 
     // --- N-Gain ---
-    public $nGainScore = 0;
+    public $nGainScore    = 0;
     public $nGainCategory = '';
-    public $gainActual = 0;
-    public $gainMax = 0;
-    public $isDecrease = false;
+    public $gainActual    = 0;
+    public $gainMax       = 0;
+    public $isDecrease    = false;
 
     public function mount($test_id)
     {
@@ -55,23 +57,36 @@ class TestResult extends Component
         $this->testQuestionsTotal = $this->currentTest->questions->count();
 
         /*
-         * FIX: Hitung jawaban benar dengan membandingkan option yang dipilih user
-         * terhadap is_correct pada tabel options — konsisten dengan blade PDF.
+         * ================================================================
+         * FIX BUG UTAMA — Penyebab "0 of X correct"
+         * ================================================================
+         * Kolom `answers` dari database bisa berupa:
+         *   - Raw JSON string : jika model TIDAK punya $casts ['answers' => 'array']
+         *   - Array           : jika model SUDAH punya cast tersebut
          *
-         * Kunci di JSON answers bisa berupa string (hasil json_decode default),
-         * sehingga kita cast $question->id ke string saat lookup.
+         * Sebelumnya kode langsung pakai $currentResult->answers sebagai array.
+         * Jika tidak di-cast, nilainya adalah string JSON → semua lookup key
+         * mengembalikan null → $correctCount selalu 0.
+         *
+         * Solusi: decode secara eksplisit agar hasilnya selalu array.
+         * ================================================================
          */
+        $answersMap = $this->decodeAnswers($currentResult->answers);
+
+        // Hitung jawaban benar
         $correctCount = 0;
-        $answersMap   = $currentResult->answers ?? [];
 
         if (!empty($answersMap)) {
             foreach ($this->currentTest->questions as $question) {
-                $questionKey  = (string) $question->id;
-                // Coba kedua bentuk key: string dan integer
-                $userOptionId = $answersMap[$questionKey] ?? ($answersMap[$question->id] ?? null);
+                $userOptionId = $answersMap[(string) $question->id]
+                    ?? $answersMap[(int) $question->id]
+                    ?? null;
 
                 if ($userOptionId !== null) {
-                    $selectedOption = $question->options->where('id', (int) $userOptionId)->first();
+                    $selectedOption = $question->options
+                        ->where('id', (int) $userOptionId)
+                        ->first();
+
                     if ($selectedOption && (bool) $selectedOption->is_correct) {
                         $correctCount++;
                     }
@@ -81,7 +96,7 @@ class TestResult extends Component
 
         $this->testQuestionsCorrect = $correctCount;
 
-        // Siapkan skor berdasarkan tipe test
+        // ===== Siapkan skor berdasarkan tipe test =====
         if ($this->isPostTest) {
             $this->postTestScore = $currentResult->score;
 
@@ -112,13 +127,69 @@ class TestResult extends Component
                 }
             }
 
+            /*
+             * FIX BUG: moduleQuizCorrect & moduleQuizTotal sebelumnya tidak
+             * pernah diisi di mount() sehingga selalu tampil 0/0.
+             * Sekarang dihitung dari hasil quiz di modul yang sama.
+             */
+            $quizTest = Test::where('module_id', $this->currentTest->module_id)
+                ->where('type', 'quiz')
+                ->with('questions.options')
+                ->first();
+
+            if ($quizTest) {
+                $quizResult = ResultModel::where('user_id', Auth::id())
+                    ->where('test_id', $quizTest->id)
+                    ->latest()
+                    ->first();
+
+                if ($quizResult) {
+                    $quizAnswersMap      = $this->decodeAnswers($quizResult->answers);
+                    $this->moduleQuizTotal   = $quizTest->questions->count();
+                    $quizCorrect         = 0;
+
+                    foreach ($quizTest->questions as $q) {
+                        $selectedId = $quizAnswersMap[(string) $q->id]
+                            ?? $quizAnswersMap[(int) $q->id]
+                            ?? null;
+
+                        if ($selectedId !== null) {
+                            $opt = $q->options->where('id', (int) $selectedId)->first();
+                            if ($opt && (bool) $opt->is_correct) {
+                                $quizCorrect++;
+                            }
+                        }
+                    }
+
+                    $this->moduleQuizCorrect = $quizCorrect;
+                }
+            }
+
             $this->calculateNGain();
         } else {
+            // Jika Pre-test
             $this->preTestScore = $currentResult->score;
         }
     }
 
-    private function calculateNGain()
+    /**
+     * Decode kolom answers secara aman.
+     * Menangani dua kemungkinan: raw JSON string (tanpa cast) atau array (dengan cast).
+     */
+    private function decodeAnswers(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return $raw;
+        }
+
+        if (is_string($raw) && !empty($raw)) {
+            return json_decode($raw, true) ?? [];
+        }
+
+        return [];
+    }
+
+    private function calculateNGain(): void
     {
         $pre  = $this->preTestScore;
         $post = $this->postTestScore;
@@ -138,7 +209,10 @@ class TestResult extends Component
             return;
         }
 
-        $this->nGainScore = $this->gainActual / $this->gainMax;
+        // Hindari division by zero
+        $this->nGainScore = $this->gainMax > 0
+            ? ($this->gainActual / $this->gainMax)
+            : 0;
 
         if ($this->nGainScore >= 0.7) {
             $this->nGainCategory = 'Tinggi (High)';

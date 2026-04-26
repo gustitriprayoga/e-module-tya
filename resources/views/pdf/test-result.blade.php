@@ -182,31 +182,24 @@
             margin: 0;
         }
 
-        .answer-row .answer-label {
+        .answer-label {
             font-weight: bold;
             color: #6b7280;
         }
 
-        .answer-row .answer-user-correct {
+        .answer-user-correct {
             color: #059669;
             font-weight: bold;
         }
 
-        .answer-row .answer-user-wrong {
+        .answer-user-wrong {
             color: #dc2626;
             font-weight: bold;
         }
 
-        .answer-row .answer-correct {
+        .answer-correct {
             color: #059669;
             font-weight: bold;
-        }
-
-        /* ===== DIVIDER ===== */
-        .divider {
-            border: none;
-            border-top: 1px solid #e5e7eb;
-            margin: 20px 0;
         }
 
         /* ===== FOOTER ===== */
@@ -256,9 +249,7 @@
                 </tr>
                 <tr>
                     <td>Status</td>
-                    <td>
-                        <span style="color: #10b981; font-weight: bold;">&#10003; Completed</span>
-                    </td>
+                    <td><span style="color: #10b981; font-weight: bold;">&#10003; Completed</span></td>
                 </tr>
             </table>
         </div>
@@ -269,15 +260,25 @@
         @foreach ($result->test->questions as $index => $question)
             @php
                 /*
-                 * FIX: Kunci pada $result->answers bisa berupa STRING (dari JSON decode),
-                 * sedangkan $question->id adalah INTEGER.
-                 * Casting ke string agar perbandingan selalu cocok.
+                 * ============================================================
+                 * FIX BUG: Decode answers secara eksplisit.
+                 * Kolom answers bisa berupa raw JSON string (jika tidak di-cast
+                 * di Model) atau array (jika sudah di-cast).
+                 * Sebelumnya langsung diakses sebagai array → selalu null
+                 * → selalu "Tidak dijawab" → selalu Salah.
+                 * ============================================================
                  */
-                $answersMap = $result->answers ?? [];
-                $questionKey = (string) $question->id;
+                $rawAnswers = $result->answers;
+                if (is_string($rawAnswers) && !empty($rawAnswers)) {
+                    $answersMap = json_decode($rawAnswers, true) ?? [];
+                } elseif (is_array($rawAnswers)) {
+                    $answersMap = $rawAnswers;
+                } else {
+                    $answersMap = [];
+                }
 
-                // 1. Ambil ID opsi yang dipilih user
-                $userOptionId = $answersMap[$questionKey] ?? ($answersMap[$question->id] ?? null);
+                // 1. Ambil ID opsi yang dipilih user (coba key string & integer)
+                $userOptionId = $answersMap[(string) $question->id] ?? ($answersMap[(int) $question->id] ?? null);
 
                 // 2. Cari objek Option yang dipilih user
                 $userOption = $question->options->where('id', (int) $userOptionId)->first();
@@ -293,7 +294,7 @@
 
             <div class="question-card {{ $isCorrect ? 'correct' : 'wrong' }}">
                 <span class="badge {{ $isCorrect ? 'badge-success' : 'badge-danger' }}">
-                    {{ $isCorrect ? '✓ Benar' : '✗ Salah' }}
+                    {{ $isCorrect ? 'Benar' : 'Salah' }}
                 </span>
 
                 <p class="question-text">
