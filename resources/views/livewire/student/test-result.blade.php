@@ -26,9 +26,22 @@
 
             <p class="text-slate-500 mb-10 max-w-sm mx-auto">This score will be used to measure your improvement
                 (N-Gain) after you complete the interactive modules.</p>
-            <a href="{{ route('modules.student.index') }}"
-                class="inline-block px-10 py-4 bg-brand-600 text-white rounded-2xl font-black shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-transform hover:-translate-y-1">Continue
-                to Modules &rarr;</a>
+
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <a href="{{ route('modules.student.index') }}"
+                    class="inline-block w-full sm:w-auto px-10 py-4 bg-brand-600 text-white rounded-2xl font-black shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-transform hover:-translate-y-1">
+                    Continue to Modules &rarr;
+                </a>
+
+                <button wire:click="download"
+                    class="inline-flex justify-center items-center w-full sm:w-auto px-8 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-transform hover:-translate-y-1">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download PDF
+                </button>
+            </div>
         </div>
     @else
         {{-- 1. SCORE CARDS --}}
@@ -55,7 +68,7 @@
             </div>
         </div>
 
-        {{-- 2. READING PERFORMANCE ANALYTICS (NEW) --}}
+        {{-- 2. READING PERFORMANCE ANALYTICS --}}
         <h3 class="text-xl font-extrabold text-slate-900 mb-4 px-2 mt-12">Reading Performance Analytics</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
             <div class="bg-white border border-slate-100 rounded-[24px] p-6 text-center shadow-sm">
@@ -111,7 +124,8 @@
                 <div
                     class="text-3xl font-black {{ $moduleQuizCorrect == $moduleQuizTotal && $moduleQuizTotal > 0 ? 'text-emerald-500' : 'text-slate-800' }}">
                     {{ $moduleQuizCorrect }}<span
-                        class="text-lg font-bold text-slate-300 mx-1">/</span>{{ $moduleQuizTotal }}</div>
+                        class="text-lg font-bold text-slate-300 mx-1">/</span>{{ $moduleQuizTotal }}
+                </div>
             </div>
         </div>
 
@@ -313,14 +327,27 @@
         </div>
     @endif
 
+    {{-- BOTTOM ACTION BUTTONS --}}
     <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8">
         <a href="{{ route('dashboard') }}"
-            class="w-full sm:w-auto px-8 py-4 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-colors text-center">Return
-            to Dashboard</a>
+            class="w-full sm:w-auto px-8 py-4 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-colors text-center">
+            Return to Dashboard
+        </a>
+
         @if ($isPostTest)
+            <button wire:click="download"
+                class="inline-flex justify-center items-center w-full sm:w-auto px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg shadow-emerald-500/30 hover:bg-emerald-700 transition-transform hover:-translate-y-1">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                        d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download PDF
+            </button>
+
             <a href="{{ route('modules.index') }}"
-                class="w-full sm:w-auto px-10 py-4 bg-brand-600 text-white rounded-2xl font-black shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-transform hover:-translate-y-1 text-center">Explore
-                More Modules &rarr;</a>
+                class="w-full sm:w-auto px-10 py-4 bg-brand-600 text-white rounded-2xl font-black shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-transform hover:-translate-y-1 text-center">
+                Explore More Modules &rarr;
+            </a>
         @endif
     </div>
 </div>

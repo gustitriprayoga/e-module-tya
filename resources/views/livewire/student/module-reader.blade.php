@@ -83,13 +83,13 @@
                     {{-- HEADER HALAMAN & AUDIO PLAYER --}}
                     <header class="mb-8 sm:mb-12 flex flex-col sm:flex-row sm:items-start justify-between gap-4"
                         x-data="audioPlayer">
-                        <div class="flex-1">
+                        {{-- <div class="flex-1">
                             <h1
                                 class="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight font-serif italic mb-4">
                                 {{ $currentPage->title }}
                             </h1>
                             <div class="h-1 w-20 bg-brand-200 rounded-full"></div>
-                        </div>
+                        </div> --}}
 
                         <div x-show="hasReadableText" x-cloak
                             class="flex items-center bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm shrink-0 self-start w-full sm:w-auto mt-4 sm:mt-0">

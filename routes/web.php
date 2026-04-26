@@ -23,6 +23,8 @@ use App\Livewire\Admin\TestManager;
 use App\Livewire\Student\Dashboard as StudentDashboard;
 use App\Livewire\Student\TestScreen;
 
+use App\Http\Controllers\ExportController;
+
 // ==========================================
 // 1. PUBLIC ROUTES
 // ==========================================
@@ -30,6 +32,9 @@ Route::get('/', HomePage::class)->name('home');
 Route::get('/modules-list', ModuleExplorer::class)->name('modules.index');
 Route::get('/leaderboard', Leaderboard::class)->name('leaderboard');
 
+Route::get('/download-result/{id}', [ExportController::class, 'downloadTestResult'])
+    ->name('test.download')
+    ->middleware(['auth']);
 
 // ==========================================
 // 2. GUEST ROUTES (Belum Login)
