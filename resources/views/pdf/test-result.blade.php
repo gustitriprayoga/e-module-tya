@@ -249,7 +249,15 @@
                 </tr>
                 <tr>
                     <td>Status</td>
-                    <td><span style="color: #10b981; font-weight: bold;">&#10003; Completed</span></td>
+                    <td><span style="color: #10b981; font-weight: bold;">Completed</span></td>
+                </tr>
+                <tr>
+                    <td>Type Test</td>
+                    <td>
+                        <span style="color: {{ $config['color'] ?? '#6366f1' }}; font-weight: bold;">
+                            {{ $config['label'] ?? ucfirst($result->test->type) }}
+                        </span>
+                    </td>
                 </tr>
             </table>
         </div>

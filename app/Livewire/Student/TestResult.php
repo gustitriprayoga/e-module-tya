@@ -12,8 +12,11 @@ class TestResult extends Component
     public $currentTest;
     public $isPostTest = false;
 
-    // --- Properti Untuk Fitur Download PDF ---
+    // --- ID Hasil Tes Untuk Fitur Download PDF ---
     public $resultId;
+    public $preTestResultId = null;
+    public $postTestResultId = null;
+    public $quizResultId = null;
 
     public $preTestScore  = 0;
     public $postTestScore = 0;
@@ -40,156 +43,122 @@ class TestResult extends Component
 
     public function mount($test_id)
     {
-        // Load questions beserta options agar bisa cek is_correct
         $this->currentTest = Test::with(['module', 'questions.options'])->findOrFail($test_id);
-        $this->isPostTest  = $this->currentTest->type === 'posttest';
 
-        // Mengambil hasil tes terbaru dari user yang sedang login
+        // Pengecekan Case-Insensitive (misal pretest, Pre-Test, PRETEST akan tetap terbaca)
+        $currentType = strtolower($this->currentTest->type);
+        $this->isPostTest  = str_contains($currentType, 'post');
+
+        // 1. Ambil Hasil Tes Saat Ini
         $currentResult = ResultModel::where('user_id', Auth::id())
             ->where('test_id', $this->currentTest->id)
             ->latest()
             ->firstOrFail();
 
-        // Simpan ID hasil test untuk download PDF
         $this->resultId = $currentResult->id;
-
-        // Hitung total soal
         $this->testQuestionsTotal = $this->currentTest->questions->count();
 
-        /*
-         * ================================================================
-         * FIX BUG UTAMA — Penyebab "0 of X correct"
-         * ================================================================
-         * Kolom `answers` dari database bisa berupa:
-         *   - Raw JSON string : jika model TIDAK punya $casts ['answers' => 'array']
-         *   - Array           : jika model SUDAH punya cast tersebut
-         *
-         * Sebelumnya kode langsung pakai $currentResult->answers sebagai array.
-         * Jika tidak di-cast, nilainya adalah string JSON → semua lookup key
-         * mengembalikan null → $correctCount selalu 0.
-         *
-         * Solusi: decode secara eksplisit agar hasilnya selalu array.
-         * ================================================================
-         */
-        $answersMap = $this->decodeAnswers($currentResult->answers);
+        // 2. Set Nilai Saat Ini
+        if (str_contains($currentType, 'pre')) {
+            $this->preTestScore = $currentResult->score;
+            $this->preTestResultId = $currentResult->id;
+        } elseif (str_contains($currentType, 'post')) {
+            $this->postTestScore = $currentResult->score;
+            $this->postTestResultId = $currentResult->id;
+        }
 
-        // Hitung jawaban benar
+        // 3. Kalkulasi Jawaban Benar Ujian Saat Ini
+        $answersMap = $this->decodeAnswers($currentResult->answers);
         $correctCount = 0;
 
         if (!empty($answersMap)) {
             foreach ($this->currentTest->questions as $question) {
-                $userOptionId = $answersMap[(string) $question->id]
-                    ?? $answersMap[(int) $question->id]
-                    ?? null;
-
+                $userOptionId = $answersMap[(string) $question->id] ?? $answersMap[(int) $question->id] ?? null;
                 if ($userOptionId !== null) {
-                    $selectedOption = $question->options
-                        ->where('id', (int) $userOptionId)
-                        ->first();
-
+                    $selectedOption = $question->options->where('id', (int) $userOptionId)->first();
                     if ($selectedOption && (bool) $selectedOption->is_correct) {
                         $correctCount++;
                     }
                 }
             }
         }
-
         $this->testQuestionsCorrect = $correctCount;
 
-        // ===== Siapkan skor berdasarkan tipe test =====
-        if ($this->isPostTest) {
-            $this->postTestScore = $currentResult->score;
+        // 4. AMBIL SEMUA RIWAYAT UNTUK MODUL INI (Tahan banting terhadap format string "type")
+        $moduleId = $this->currentTest->module_id ?? optional($this->currentTest->module)->id;
 
-            // Cari nilai Pre-test di modul yang sama
-            $preTest = Test::where('module_id', $this->currentTest->module_id)
-                ->where('type', 'pretest')
-                ->first();
+        if ($moduleId) {
+            $moduleTests = Test::where('module_id', $moduleId)->with('questions.options')->get();
 
+            // --- Cek Pre-Test ---
+            $preTest = $moduleTests->first(fn($t) => str_contains(strtolower($t->type), 'pre'));
             if ($preTest) {
-                $preTestResult = ResultModel::where('user_id', Auth::id())
-                    ->where('test_id', $preTest->id)
-                    ->latest()
-                    ->first();
-                $this->preTestScore = $preTestResult ? $preTestResult->score : 0;
+                $preTestResult = ResultModel::where('user_id', Auth::id())->where('test_id', $preTest->id)->latest()->first();
+                if ($preTestResult) {
+                    $this->preTestScore = $preTestResult->score;
+                    $this->preTestResultId = $preTestResult->id;
+                }
             }
 
-            // Ambil data analitik membaca
+            // --- Cek Post-Test ---
+            $postTest = $moduleTests->first(fn($t) => str_contains(strtolower($t->type), 'post'));
+            if ($postTest) {
+                $postTestResult = ResultModel::where('user_id', Auth::id())->where('test_id', $postTest->id)->latest()->first();
+                if ($postTestResult) {
+                    $this->postTestScore = $postTestResult->score;
+                    $this->postTestResultId = $postTestResult->id;
+                }
+            }
+
+            // --- Cek Quiz ---
+            $quizTest = $moduleTests->first(fn($t) => str_contains(strtolower($t->type), 'quiz'));
+            if ($quizTest) {
+                $quizResult = ResultModel::where('user_id', Auth::id())->where('test_id', $quizTest->id)->latest()->first();
+                if ($quizResult) {
+                    $this->quizResultId = $quizResult->id;
+                    $this->moduleQuizTotal = $quizTest->questions->count();
+
+                    $quizAnswersMap = $this->decodeAnswers($quizResult->answers);
+                    $quizCorrect = 0;
+                    foreach ($quizTest->questions as $q) {
+                        $selectedId = $quizAnswersMap[(string) $q->id] ?? $quizAnswersMap[(int) $q->id] ?? null;
+                        if ($selectedId !== null) {
+                            $opt = $q->options->where('id', (int) $selectedId)->first();
+                            if ($opt && (bool) $opt->is_correct) $quizCorrect++;
+                        }
+                    }
+                    $this->moduleQuizCorrect = $quizCorrect;
+                }
+            }
+
+            // --- Cek Analitik Membaca ---
             if (class_exists(\App\Models\ReadingHistory::class)) {
                 $readingHistory = \App\Models\ReadingHistory::where('user_id', Auth::id())
-                    ->where('module_id', $this->currentTest->module_id)
+                    ->where('module_id', $moduleId)
                     ->latest()
                     ->first();
-
                 if ($readingHistory) {
                     $this->readingWpm   = $readingHistory->wpm ?? 0;
                     $this->readingTime  = $readingHistory->time_spent ?? 0;
                     $this->readingWords = $readingHistory->total_words ?? 0;
                 }
             }
+        }
 
-            /*
-             * FIX BUG: moduleQuizCorrect & moduleQuizTotal sebelumnya tidak
-             * pernah diisi di mount() sehingga selalu tampil 0/0.
-             * Sekarang dihitung dari hasil quiz di modul yang sama.
-             */
-            $quizTest = Test::where('module_id', $this->currentTest->module_id)
-                ->where('type', 'quiz')
-                ->with('questions.options')
-                ->first();
-
-            if ($quizTest) {
-                $quizResult = ResultModel::where('user_id', Auth::id())
-                    ->where('test_id', $quizTest->id)
-                    ->latest()
-                    ->first();
-
-                if ($quizResult) {
-                    $quizAnswersMap      = $this->decodeAnswers($quizResult->answers);
-                    $this->moduleQuizTotal   = $quizTest->questions->count();
-                    $quizCorrect         = 0;
-
-                    foreach ($quizTest->questions as $q) {
-                        $selectedId = $quizAnswersMap[(string) $q->id]
-                            ?? $quizAnswersMap[(int) $q->id]
-                            ?? null;
-
-                        if ($selectedId !== null) {
-                            $opt = $q->options->where('id', (int) $selectedId)->first();
-                            if ($opt && (bool) $opt->is_correct) {
-                                $quizCorrect++;
-                            }
-                        }
-                    }
-
-                    $this->moduleQuizCorrect = $quizCorrect;
-                }
-            }
-
+        // 5. Kalkulasi N-Gain
+        if ($this->preTestResultId && $this->postTestResultId) {
             $this->calculateNGain();
-        } else {
-            // Jika Pre-test
-            $this->preTestScore = $currentResult->score;
         }
     }
 
-    /**
-     * Decode kolom answers secara aman.
-     * Menangani dua kemungkinan: raw JSON string (tanpa cast) atau array (dengan cast).
-     */
-    private function decodeAnswers(mixed $raw): array
+    private function decodeAnswers($raw)
     {
-        if (is_array($raw)) {
-            return $raw;
-        }
-
-        if (is_string($raw) && !empty($raw)) {
-            return json_decode($raw, true) ?? [];
-        }
-
+        if (is_array($raw)) return $raw;
+        if (is_string($raw) && !empty($raw)) return json_decode($raw, true) ?? [];
         return [];
     }
 
-    private function calculateNGain(): void
+    private function calculateNGain()
     {
         $pre  = $this->preTestScore;
         $post = $this->postTestScore;
@@ -209,10 +178,7 @@ class TestResult extends Component
             return;
         }
 
-        // Hindari division by zero
-        $this->nGainScore = $this->gainMax > 0
-            ? ($this->gainActual / $this->gainMax)
-            : 0;
+        $this->nGainScore = $this->gainMax > 0 ? ($this->gainActual / $this->gainMax) : 0;
 
         if ($this->nGainScore >= 0.7) {
             $this->nGainCategory = 'Tinggi (High)';
@@ -228,15 +194,22 @@ class TestResult extends Component
         }
     }
 
-    // --- FUNGSI DOWNLOAD TRIGGERED DARI BLADE ---
-    public function download()
+    public function downloadPreTest()
     {
-        if (!$this->resultId) {
-            session()->flash('error', 'Data hasil tes tidak ditemukan.');
-            return;
-        }
+        if (!$this->preTestResultId) return;
+        return redirect()->route('test.download', $this->preTestResultId);
+    }
 
-        return redirect()->route('test.download', $this->resultId);
+    public function downloadPostTest()
+    {
+        if (!$this->postTestResultId) return;
+        return redirect()->route('test.download', $this->postTestResultId);
+    }
+
+    public function downloadQuiz()
+    {
+        if (!$this->quizResultId) return;
+        return redirect()->route('test.download', $this->quizResultId);
     }
 
     public function render()

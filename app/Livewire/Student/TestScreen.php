@@ -21,7 +21,6 @@ class TestScreen extends Component
         $this->test = Test::with(['questions.options'])->findOrFail($testId);
         $this->questions = $this->test->questions;
 
-        // PENGAMAN: Jika admin/seeder belum memasukkan soal ke dalam ujian ini
         if ($this->questions->isEmpty()) {
             toast('This test has no questions yet. Please contact the instructor.', 'error');
             return redirect()->route('dashboard');
@@ -57,28 +56,32 @@ class TestScreen extends Component
     {
         if ($this->isFinished) return;
 
-        $totalQuestions = count($this->questions);
+        // 1. SOLUSI LIVEWIRE: Ambil ulang data Test beserta kunci jawabannya langsung dari database
+        $testData = Test::with('questions.options')->find($this->test->id);
+
+        $totalQuestions = $testData->questions->count();
         $correctAnswers = 0;
 
-        foreach ($this->questions as $question) {
+        // Kalkulasi Skor yang akurat
+        foreach ($testData->questions as $question) {
             $selectedOptionId = $this->answers[$question->id] ?? null;
             $correctOption = $question->options->where('is_correct', true)->first();
 
-            if ($correctOption && $selectedOptionId == $correctOption->id) {
+            if ($correctOption && (string)$selectedOptionId === (string)$correctOption->id) {
                 $correctAnswers++;
             }
         }
 
         $score = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
 
-        // --- BAGIAN INI YANG DIUBAH ---
-        TestResult::create([
-            'user_id' => Auth::id(),
-            'test_id' => $this->test->id,
-            'score' => $score,
-            'answers' => $this->answers, // SIMPAN JAWABAN KE DATABASE
-            'completed_at' => now(),
-        ]);
+        // 2. SOLUSI DATABASE: Paksa simpan data (Bypass Fillable) agar "answers" tidak dibuang
+        $result = new TestResult();
+        $result->user_id = Auth::id();
+        $result->test_id = $this->test->id;
+        $result->score = $score;
+        $result->answers = is_array($this->answers) ? json_encode($this->answers) : $this->answers;
+        $result->completed_at = now();
+        $result->save();
 
         $this->isFinished = true;
 
@@ -89,7 +92,6 @@ class TestScreen extends Component
 
     public function render()
     {
-        return view('livewire.student.test-screen')
-            ->layout('components.layouts.reader', ['title' => $this->test->title ?? 'Test']);
+        return view('livewire.student.test-screen')->layout('components.layouts.app');
     }
 }

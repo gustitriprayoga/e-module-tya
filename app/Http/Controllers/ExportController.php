@@ -18,20 +18,25 @@ class ExportController extends Controller
         if (is_string($answers)) {
             $answers = json_decode($answers, true);
         }
-        if (empty($answers)) {
-            $answers = [];
-        }
 
-        $config = match ($result->test->type) {
-            'pretest' => ['color' => '#3b82f6', 'label' => 'Pre-Test'],
-            'posttest' => ['color' => '#10b981', 'label' => 'Post-Test'],
-            'quiz' => ['color' => '#f59e0b', 'label' => 'Quiz'],
-            default => ['color' => '#6366f1', 'label' => 'Result'],
-        };
+        // --- LOGIC BARU: Deteksi Tipe Tes Yang Lebih Fleksibel ---
+        $typeStr = strtolower($result->test->type);
+
+        // Set default sebagai cadangan
+        $config = ['color' => '#6366f1', 'label' => 'Result'];
+
+        if (str_contains($typeStr, 'pre')) {
+            $config = ['color' => '#3b82f6', 'label' => 'Pre-Test'];
+        } elseif (str_contains($typeStr, 'post')) {
+            $config = ['color' => '#10b981', 'label' => 'Post-Test'];
+        } elseif (str_contains($typeStr, 'quiz')) {
+            $config = ['color' => '#f59e0b', 'label' => 'Quiz'];
+        }
+        // -------------------------------------------------------
 
         $pdf = Pdf::loadView('pdf.test-result', [
             'result' => $result,
-            'answers' => $answers,
+            'answers' => $answers ?? [],
             'config' => $config
         ]);
 
