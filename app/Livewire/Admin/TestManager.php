@@ -5,9 +5,9 @@ namespace App\Livewire\Admin;
 use App\Models\Test;
 use App\Models\Question;
 use App\Models\Module;
+use App\Models\TestPassage;
 use Livewire\Component;
 use Livewire\WithPagination;
-use RealRashid\SweetAlert\Facades\Alert;
 
 class TestManager extends Component
 {
@@ -18,17 +18,20 @@ class TestManager extends Component
     public $test_id, $title, $module_id, $type = 'pre-test', $duration = 60, $passing_score = 70, $is_active = false;
     public $isModalOpen = false;
 
-    // --- STATE SOAL (QUESTION) ---
-    public $isQuestionListOpen = false; // Modal daftar soal
-    public $isQuestionFormOpen = false; // Modal form tambah/edit soal
+    // --- STATE MODAL UTAMA (MANAGE QUESTIONS) ---
+    public $isQuestionManagerOpen = false;
+    public ?Test $test = null; // Akan menampung test yang dipilih beserta relasinya
 
-    public $selectedTestId;
-    public $selectedTestTitle = '';
-    public $testQuestions = []; // Menyimpan soal-soal milik test yang dipilih
+    // --- STATE FORM PASSAGE ---
+    public $isPassageFormOpen = false;
+    public $passage_id, $passage_title, $passage_content;
 
-    // Form Soal
-    public $question_id, $passage, $question_text, $indicator, $explanation;
+    // --- STATE FORM SOAL (QUESTION) ---
+    public $isQuestionFormOpen = false;
+    public $question_id, $question_text, $indicator, $explanation;
+    public $question_passage_id; // Untuk menyimpan passage_id saat membuat/mengedit soal
     public $options = [];
+
 
     public function updatingSearch()
     {
@@ -47,23 +50,17 @@ class TestManager extends Component
 
         $modules = Module::orderBy('order', 'asc')->get();
 
-        $indicators = [
-            'Main Idea',
-            'Supporting Detail',
-            'Inference',
-            'Vocabulary in Context',
-            'Reference'
-        ];
+        $indicators = ['Main Idea', 'Supporting Detail', 'Inference', 'Vocabulary in Context', 'Reference'];
 
         return view('livewire.admin.test-manager', [
             'tests' => $tests,
             'modules' => $modules,
-            'indicators' => $indicators
+            'indicators' => $indicators,
         ])->layout('components.layouts.dashboard', ['title' => 'Test Manager']);
     }
 
     // ==========================================
-    // 1. TEST CRUD METHODS
+    // 1. TEST CRUD METHODS (TIDAK BERUBAH)
     // ==========================================
     public function createTest()
     {
@@ -115,7 +112,7 @@ class TestManager extends Component
 
     public function deleteTest($id)
     {
-        Test::findOrFail($id)->delete(); // Akan otomatis menghapus soal-soalnya karena Cascade
+        Test::findOrFail($id)->delete();
         toast('Test deleted permanently.', 'error');
     }
 
@@ -131,39 +128,81 @@ class TestManager extends Component
     }
 
     // ==========================================
-    // 2. QUESTION CRUD METHODS (KHUSUS UNTUK TEST TERPILIH)
+    // 2. REFACTORED QUESTION & PASSAGE MANAGER
     // ==========================================
 
-    // Buka Modal Daftar Soal
-    public function manageQuestions($test_id)
+    public function manageQuestions($testId)
     {
-        $test = Test::findOrFail($test_id);
-        $this->selectedTestId = $test->id;
-        $this->selectedTestTitle = $test->title;
-        $this->loadTestQuestions();
-        $this->isQuestionListOpen = true;
+        $this->loadCompleteTest($testId);
+        $this->isQuestionManagerOpen = true;
     }
 
-    // Muat ulang daftar soal di memori
-    public function loadTestQuestions()
+    public function loadCompleteTest($testId)
     {
-        $this->testQuestions = Question::where('test_id', $this->selectedTestId)->latest()->get();
+        $this->test = Test::with('testPassages.questions.options')->findOrFail($testId);
     }
 
-    // Buka Modal Bikin Soal Baru
-    public function createQuestion()
+    // --- Passage CRUD Methods ---
+    public function createPassage()
+    {
+        $this->resetPassageFields();
+        $this->isPassageFormOpen = true;
+    }
+
+    public function editPassage($passageId)
+    {
+        $passage = TestPassage::findOrFail($passageId);
+        $this->passage_id = $passage->id;
+        $this->passage_title = $passage->title;
+        $this->passage_content = $passage->content;
+        $this->isPassageFormOpen = true;
+    }
+
+    public function savePassage()
+    {
+        $this->validate([
+            'passage_content' => 'required|string',
+            'passage_title' => 'nullable|string|max:255',
+        ]);
+
+        TestPassage::updateOrCreate(['id' => $this->passage_id], [
+            'test_id' => $this->test->id,
+            'title' => $this->passage_title,
+            'content' => $this->passage_content,
+        ]);
+
+        $this->isPassageFormOpen = false;
+        $this->loadCompleteTest($this->test->id);
+        toast($this->passage_id ? 'Passage updated!' : 'New passage added!', 'success');
+    }
+
+    public function deletePassage($passageId)
+    {
+        TestPassage::findOrFail($passageId)->delete();
+        $this->loadCompleteTest($this->test->id);
+        toast('Passage and its questions deleted.', 'error');
+    }
+
+    private function resetPassageFields()
+    {
+        $this->passage_id = null;
+        $this->passage_title = '';
+        $this->passage_content = '';
+    }
+
+    // --- Question CRUD Methods ---
+    public function createQuestion($passageId)
     {
         $this->resetQuestionFields();
-        $this->isQuestionListOpen = false;
+        $this->question_passage_id = $passageId;
         $this->isQuestionFormOpen = true;
     }
 
-    // Edit Soal
-    public function editQuestion($id)
+    public function editQuestion($questionId)
     {
-        $question = Question::with('options')->findOrFail($id);
-        $this->question_id = $id;
-        $this->passage = $question->passage;
+        $question = Question::with('options')->findOrFail($questionId);
+        $this->question_id = $question->id;
+        $this->question_passage_id = $question->test_passage_id;
         $this->question_text = $question->question_text;
         $this->indicator = $question->indicator;
         $this->explanation = $question->explanation;
@@ -175,27 +214,16 @@ class TestManager extends Component
         while (count($this->options) < 5) {
             $this->options[] = ['text' => '', 'is_correct' => false];
         }
-
-        $this->isQuestionListOpen = false;
         $this->isQuestionFormOpen = true;
-    }
-
-    // Fungsi radio button kunci jawaban
-    public function setCorrectOption($index)
-    {
-        foreach ($this->options as $i => $opt) {
-            $this->options[$i]['is_correct'] = ($i === $index);
-        }
     }
 
     public function saveQuestion()
     {
-        // Filter opsi kosong
-        $filledOptions = array_values(array_filter($this->options, fn($opt) => trim($opt['text']) !== ''));
-
+        $filledOptions = array_values(array_filter($this->options, fn ($opt) => trim($opt['text']) !== ''));
         $this->options = $filledOptions;
 
         $this->validate([
+            'question_passage_id' => 'required|exists:test_passages,id',
             'question_text' => 'required|string',
             'indicator' => 'required|string',
             'options' => 'required|array|min:2',
@@ -208,11 +236,12 @@ class TestManager extends Component
         }
 
         $question = Question::updateOrCreate(['id' => $this->question_id], [
-            'test_id' => $this->selectedTestId, // Ikat ke Test ini!
-            'passage' => $this->passage,
+            'test_id' => $this->test->id,
+            'test_passage_id' => $this->question_passage_id,
             'question_text' => $this->question_text,
             'indicator' => $this->indicator,
             'explanation' => $this->explanation,
+            'passage' => null, // Pastikan field lama dikosongkan
         ]);
 
         $question->options()->delete();
@@ -225,39 +254,32 @@ class TestManager extends Component
         }
 
         $this->isQuestionFormOpen = false;
-        $this->loadTestQuestions(); // Reload soal
-        $this->isQuestionListOpen = true; // Kembali ke modal daftar soal
-        toast($this->question_id ? 'Question updated!' : 'Question added to test!', 'success');
+        $this->loadCompleteTest($this->test->id);
+        toast($this->question_id ? 'Question updated!' : 'Question added!', 'success');
     }
 
-    public function deleteQuestion($id)
+     public function deleteQuestion($id)
     {
         Question::findOrFail($id)->delete();
-        $this->loadTestQuestions(); // Reload list
+        $this->loadCompleteTest($this->test->id);
         toast('Question deleted.', 'error');
-    }
-
-    // Kembali dari Form Soal ke Daftar Soal
-    public function backToQuestionList()
-    {
-        $this->isQuestionFormOpen = false;
-        $this->loadTestQuestions();
-        $this->isQuestionListOpen = true;
     }
 
     private function resetQuestionFields()
     {
         $this->question_id = null;
-        $this->passage = '';
+        $this->question_passage_id = null;
         $this->question_text = '';
         $this->indicator = '';
         $this->explanation = '';
-        $this->options = [
-            ['text' => '', 'is_correct' => true],
-            ['text' => '', 'is_correct' => false],
-            ['text' => '', 'is_correct' => false],
-            ['text' => '', 'is_correct' => false],
-            ['text' => '', 'is_correct' => false],
-        ];
+        $this->options = [['text' => '', 'is_correct' => true], ['text' => '', 'is_correct' => false], ['text' => '', 'is_correct' => false], ['text' => '', 'is_correct' => false], ['text' => '', 'is_correct' => false]];
+    }
+
+    // --- Radio button helper ---
+    public function setCorrectOption($index)
+    {
+        foreach ($this->options as $i => $opt) {
+            $this->options[$i]['is_correct'] = ($i === $index);
+        }
     }
 }

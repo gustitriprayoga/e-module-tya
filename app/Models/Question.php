@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Question extends Model
 {
-    protected $fillable = ['passage', 'question_text', 'indicator', 'explanation'];
+    protected $fillable = ['test_id', 'test_passage_id', 'passage', 'question_text', 'indicator', 'explanation'];
 
     public function options()
     {
@@ -16,5 +16,10 @@ class Question extends Model
     public function test()
     {
         return $this->belongsTo(Test::class);
+    }
+
+    public function testPassage()
+    {
+        return $this->belongsTo(TestPassage::class, 'test_passage_id');
     }
 }

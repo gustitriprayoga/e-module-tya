@@ -20,6 +20,11 @@ class Test extends Model
         return $this->hasMany(Question::class);
     }
 
+    public function testPassages()
+    {
+        return $this->hasMany(TestPassage::class)->orderBy('order');
+    }
+
     // public function questions()
     // {
     //     return $this->belongsToMany(Question::class, 'test_questions')

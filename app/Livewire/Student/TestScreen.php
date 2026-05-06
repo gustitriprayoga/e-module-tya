@@ -3,31 +3,51 @@
 namespace App\Livewire\Student;
 
 use App\Models\Test;
+use App\Models\Question;
 use App\Models\TestResult;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Collection;
 
 class TestScreen extends Component
 {
-    public $test;
-    public $questions;
-    public $currentQuestionIndex = 0;
-    public $answers = [];
+    public Test $test;
+    public Collection $questions;
+    public int $currentQuestionIndex = 0;
+    public array $answers = [];
     public $timeLeft;
-    public $isFinished = false;
+    public bool $isFinished = false;
 
     public function mount($testId)
     {
-        $this->test = Test::with(['questions.options'])->findOrFail($testId);
-        $this->questions = $this->test->questions;
+        $this->test = Test::findOrFail($testId);
+        $this->timeLeft = $this->test->duration * 60;
+
+        // Ambil pertanyaan yang dikelompokkan berdasarkan passage terlebih dahulu
+        $passageQuestions = Question::where('test_id', $testId)
+            ->whereNotNull('test_passage_id')
+            ->with(['options', 'testPassage']) // Eager load relasi
+            ->orderBy('test_passage_id') // Urutkan berdasarkan passage
+            ->orderBy('id') // Kemudian urutkan berdasarkan ID soal
+            ->get();
+
+        // Ambil pertanyaan yang tidak memiliki passage
+        $standaloneQuestions = Question::where('test_id', $testId)
+            ->whereNull('test_passage_id')
+            ->with('options')
+            ->orderBy('id')
+            ->get();
+
+        // Gabungkan keduanya menjadi satu collection
+        $this->questions = $passageQuestions->concat($standaloneQuestions);
 
         if ($this->questions->isEmpty()) {
             toast('This test has no questions yet. Please contact the instructor.', 'error');
+            // Redirect using a more Livewire-friendly way if possible, or ensure this works in context.
             return redirect()->route('dashboard');
         }
-
-        $this->timeLeft = $this->test->duration * 60;
-
+        
+        // Inisialisasi jawaban
         foreach ($this->questions as $q) {
             $this->answers[$q->id] = null;
         }
@@ -35,7 +55,7 @@ class TestScreen extends Component
 
     public function nextQuestion()
     {
-        if ($this->currentQuestionIndex < count($this->questions) - 1) {
+        if ($this->currentQuestionIndex < $this->questions->count() - 1) {
             $this->currentQuestionIndex++;
         }
     }
@@ -56,13 +76,12 @@ class TestScreen extends Component
     {
         if ($this->isFinished) return;
 
-        // 1. SOLUSI LIVEWIRE: Ambil ulang data Test beserta kunci jawabannya langsung dari database
+        // Ambil ulang data Test beserta kunci jawabannya langsung dari database
         $testData = Test::with('questions.options')->find($this->test->id);
-
         $totalQuestions = $testData->questions->count();
         $correctAnswers = 0;
 
-        // Kalkulasi Skor yang akurat
+        // Kalkulasi Skor
         foreach ($testData->questions as $question) {
             $selectedOptionId = $this->answers[$question->id] ?? null;
             $correctOption = $question->options->where('is_correct', true)->first();
@@ -72,19 +91,18 @@ class TestScreen extends Component
             }
         }
 
-        $score = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
+        $score = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100) : 0;
 
-        // 2. SOLUSI DATABASE: Paksa simpan data (Bypass Fillable) agar "answers" tidak dibuang
+        // Simpan hasil
         $result = new TestResult();
         $result->user_id = Auth::id();
         $result->test_id = $this->test->id;
         $result->score = $score;
-        $result->answers = is_array($this->answers) ? json_encode($this->answers) : $this->answers;
+        $result->answers = json_encode($this->answers);
         $result->completed_at = now();
         $result->save();
 
         $this->isFinished = true;
-
         toast('Test submitted successfully!', 'success');
 
         return redirect()->route('student.test.result', $this->test->id);
@@ -92,6 +110,6 @@ class TestScreen extends Component
 
     public function render()
     {
-        return view('livewire.student.test-screen')->layout('components.layouts.app');
+        return view('livewire.student.test-screen')->layout('components.layouts.reader');
     }
 }

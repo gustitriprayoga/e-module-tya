@@ -34,7 +34,7 @@
         @php $currentQ = $questions[$currentQuestionIndex]; @endphp
 
         {{-- READING PASSAGE AREA --}}
-        @if ($currentQ->passage)
+        @if ($currentQ->testPassage)
             <div
                 class="w-full lg:w-1/2 bg-white p-5 sm:p-8 lg:p-12 lg:h-full lg:overflow-y-auto border-b-4 border-slate-100 lg:border-b-0 lg:border-r lg:border-slate-200 z-10 custom-scrollbar shrink-0 lg:shrink">
                 <div class="max-w-2xl mx-auto">
@@ -45,11 +45,11 @@
                                 d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
                             </path>
                         </svg>
-                        Reading Passage
+                        {{ $currentQ->testPassage->title ?: 'Reading Passage' }}
                     </h3>
                     <div
                         class="leading-relaxed sm:leading-[1.8] font-serif text-lg sm:text-xl text-slate-800 text-justify selection:bg-brand-100 pb-4 lg:pb-0 break-words">
-                        {!! nl2br(e($currentQ->passage)) !!}
+                        {!! nl2br(e($currentQ->testPassage->content)) !!}
                     </div>
                 </div>
             </div>
@@ -57,7 +57,7 @@
 
         {{-- QUESTION & ANSWER AREA --}}
         <div
-            class="{{ $currentQ->passage ? 'w-full lg:w-1/2' : 'w-full max-w-3xl mx-auto' }} p-5 sm:p-8 lg:p-12 lg:h-full lg:overflow-y-auto bg-slate-50 custom-scrollbar flex flex-col justify-between">
+            class="{{ $currentQ->testPassage ? 'w-full lg:w-1/2' : 'w-full max-w-3xl mx-auto' }} p-5 sm:p-8 lg:p-12 lg:h-full lg:overflow-y-auto bg-slate-50 custom-scrollbar flex flex-col justify-between">
 
             <div class="max-w-xl mx-auto w-full">
                 <div

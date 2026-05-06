@@ -43,7 +43,14 @@ class TestResult extends Component
 
     public function mount($test_id)
     {
-        $this->currentTest = Test::with(['module', 'questions.options'])->findOrFail($test_id);
+        $this->currentTest = Test::with([
+            'module', 
+            'questions' => function ($query) {
+                $query->with(['options', 'testPassage'])
+                      ->orderBy('test_passage_id')
+                      ->orderBy('id');
+            }
+        ])->findOrFail($test_id);
 
         // Pengecekan Case-Insensitive (misal pretest, Pre-Test, PRETEST akan tetap terbaca)
         $currentType = strtolower($this->currentTest->type);
