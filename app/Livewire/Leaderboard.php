@@ -39,11 +39,11 @@ class Leaderboard extends Component
              */
             $rawRankings = ReadingHistory::select(
                 'user_id',
-                DB::raw('MAX(wpm_result) as top_wpm')
+                DB::raw('MAX(wpm) as top_wpm')
             )
                 ->where('module_id', $this->selectedModule)
-                ->whereNotNull('wpm_result')
-                ->where('wpm_result', '>', 0)
+                ->whereNotNull('wpm')
+                ->where('wpm', '>', 0)
                 ->groupBy('user_id')
                 ->orderByDesc('top_wpm')
                 ->take(20)

@@ -10,8 +10,11 @@ class ReadingHistory extends Model
         'user_id',
         'module_id',
         'block_id',
-        'reading_time_seconds',
-        'wpm_result',
+        'time_spent',
+        'wpm',
+        'total_words',
+        'quiz_correct',
+        'quiz_total',
         'accuracy_score'
     ];
 
@@ -23,5 +26,10 @@ class ReadingHistory extends Model
     public function block()
     {
         return $this->belongsTo(Block::class);
+    }
+
+    public function module()
+    {
+        return $this->belongsTo(Module::class);
     }
 }

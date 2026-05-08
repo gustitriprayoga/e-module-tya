@@ -120,7 +120,25 @@ class ModuleReader extends Component
         $quizCorrect = count(array_filter($this->userAnswers, fn($status) => $status === 'correct'));
         $quizTotal = \App\Models\Block::whereIn('page_id', $this->pages->pluck('id'))->where('type', 'quiz')->count();
 
-        // SIMPAN KE SESSION: Agar bisa diambil dan ditampilkan di Halaman Result Akhir
+        // --- SIMPAN KE DATABASE (Persistent) ---
+        if (auth()->check()) {
+            \App\Models\ReadingHistory::updateOrCreate(
+                [
+                    'user_id' => auth()->id(),
+                    'module_id' => $this->module->id,
+                    'block_id' => null, // Module-level analytics
+                ],
+                [
+                    'time_spent' => $this->totalSeconds,
+                    'wpm' => $finalWpm,
+                    'total_words' => $this->totalWords,
+                    'quiz_correct' => $quizCorrect,
+                    'quiz_total' => $quizTotal,
+                ]
+            );
+        }
+
+        // SIMPAN KE SESSION: Agar tetap bisa diambil jika diperlukan
         session()->put('module_' . $this->module->id . '_wpm', $finalWpm);
         session()->put('module_' . $this->module->id . '_time', $this->totalSeconds);
         session()->put('module_' . $this->module->id . '_words', $this->totalWords);

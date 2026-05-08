@@ -44,11 +44,11 @@ class TestResult extends Component
     public function mount($test_id)
     {
         $this->currentTest = Test::with([
-            'module', 
+            'module',
             'questions' => function ($query) {
                 $query->with(['options', 'testPassage'])
-                      ->orderBy('test_passage_id')
-                      ->orderBy('id');
+                    ->orderBy('test_passage_id')
+                    ->orderBy('id');
             }
         ])->findOrFail($test_id);
 
@@ -97,6 +97,30 @@ class TestResult extends Component
         if ($moduleId) {
             $moduleTests = Test::where('module_id', $moduleId)->with('questions.options')->get();
 
+            // --- Cek Quiz (In-Module Quiz) ---
+            // Prioritas 1: Ambil dari ReadingHistory (Database)
+            // Prioritas 2: Ambil dari Session (Fallback jika belum tersimpan di DB)
+            $readingHistory = \App\Models\ReadingHistory::where('user_id', Auth::id())
+                ->where('module_id', $moduleId)
+                ->whereNull('block_id')
+                ->latest()
+                ->first();
+
+            if ($readingHistory) {
+                $this->readingWpm         = $readingHistory->wpm ?? 0;
+                $this->readingTime        = $readingHistory->time_spent ?? 0;
+                $this->readingWords       = $readingHistory->total_words ?? 0;
+                $this->moduleQuizCorrect  = $readingHistory->quiz_correct ?? 0;
+                $this->moduleQuizTotal    = $readingHistory->quiz_total ?? 0;
+            } else {
+                // Fallback ke session jika data di DB belum ada
+                $this->readingWpm         = session()->get('module_' . $moduleId . '_wpm', 0);
+                $this->readingTime        = session()->get('module_' . $moduleId . '_time', 0);
+                $this->readingWords       = session()->get('module_' . $moduleId . '_words', 0);
+                $this->moduleQuizCorrect  = session()->get('module_' . $moduleId . '_quiz_correct', 0);
+                $this->moduleQuizTotal    = session()->get('module_' . $moduleId . '_quiz_total', 0);
+            }
+
             // --- Cek Pre-Test ---
             $preTest = $moduleTests->first(fn($t) => str_contains(strtolower($t->type), 'pre'));
             if ($preTest) {
@@ -117,37 +141,12 @@ class TestResult extends Component
                 }
             }
 
-            // --- Cek Quiz ---
+            // --- Cek Quiz ID (Untuk Download PDF saja) ---
             $quizTest = $moduleTests->first(fn($t) => str_contains(strtolower($t->type), 'quiz'));
             if ($quizTest) {
                 $quizResult = ResultModel::where('user_id', Auth::id())->where('test_id', $quizTest->id)->latest()->first();
                 if ($quizResult) {
                     $this->quizResultId = $quizResult->id;
-                    $this->moduleQuizTotal = $quizTest->questions->count();
-
-                    $quizAnswersMap = $this->decodeAnswers($quizResult->answers);
-                    $quizCorrect = 0;
-                    foreach ($quizTest->questions as $q) {
-                        $selectedId = $quizAnswersMap[(string) $q->id] ?? $quizAnswersMap[(int) $q->id] ?? null;
-                        if ($selectedId !== null) {
-                            $opt = $q->options->where('id', (int) $selectedId)->first();
-                            if ($opt && (bool) $opt->is_correct) $quizCorrect++;
-                        }
-                    }
-                    $this->moduleQuizCorrect = $quizCorrect;
-                }
-            }
-
-            // --- Cek Analitik Membaca ---
-            if (class_exists(\App\Models\ReadingHistory::class)) {
-                $readingHistory = \App\Models\ReadingHistory::where('user_id', Auth::id())
-                    ->where('module_id', $moduleId)
-                    ->latest()
-                    ->first();
-                if ($readingHistory) {
-                    $this->readingWpm   = $readingHistory->wpm ?? 0;
-                    $this->readingTime  = $readingHistory->time_spent ?? 0;
-                    $this->readingWords = $readingHistory->total_words ?? 0;
                 }
             }
         }
@@ -221,6 +220,6 @@ class TestResult extends Component
 
     public function render()
     {
-        return view('livewire.student.test-result')->layout('components.layouts.app');
+        return view('livewire.student.test-result')->layout('components.layouts.reader');
     }
 }

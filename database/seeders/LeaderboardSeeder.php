@@ -51,8 +51,8 @@ class LeaderboardSeeder extends Seeder
                 'user_id' => $user->id,
                 'module_id' => $module->id,
                 'block_id' => $block->id,
-                'duration_seconds' => rand(100, 150),
-                'wpm_result' => $data['wpm'],
+                'time_spent' => rand(100, 150),
+                'wpm' => $data['wpm'],
                 'accuracy_score' => rand(85, 100),
             ]);
         }
@@ -74,8 +74,8 @@ class LeaderboardSeeder extends Seeder
                 'user_id' => $user->id,
                 'module_id' => $module->id,
                 'block_id' => $block->id,
-                'duration_seconds' => rand(160, 300),
-                'wpm_result' => rand(100, 240),
+                'time_spent' => rand(160, 300),
+                'wpm' => rand(100, 240),
                 'accuracy_score' => rand(70, 95),
             ]);
         }

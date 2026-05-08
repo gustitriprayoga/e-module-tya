@@ -46,7 +46,7 @@ class TestScreen extends Component
             // Redirect using a more Livewire-friendly way if possible, or ensure this works in context.
             return redirect()->route('dashboard');
         }
-        
+
         // Inisialisasi jawaban
         foreach ($this->questions as $q) {
             $this->answers[$q->id] = null;
